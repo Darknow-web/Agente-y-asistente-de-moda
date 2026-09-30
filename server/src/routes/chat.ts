@@ -148,6 +148,12 @@ rutasChat.post(
     const latido = setInterval(() => res.write(': latido\n\n'), 15000);
     const abortar = new AbortController();
     req.on('close', () => abortar.abort());
+    // Tope total de la respuesta: si el departamento no termina a tiempo, se avisa en vez de dejar el chat colgado.
+    let vencioTiempo = false;
+    const tope = setTimeout(() => {
+      vencioTiempo = true;
+      abortar.abort();
+    }, lim.segundosMaxPorRespuesta * 1000);
 
     try {
       const ctx = await construirContexto(usuario.uid, usuario.email);
@@ -192,8 +198,14 @@ rutasChat.post(
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : String(e);
       console.error('[chat] error:', e);
-      enviar(res, { tipo: 'error', mensaje: humanizar(mensaje) });
+      enviar(res, {
+        tipo: 'error',
+        mensaje: vencioTiempo
+          ? `El departamento tardó más de ${Math.round(lim.segundosMaxPorRespuesta / 60)} minutos y se detuvo. Vuelve a intentarlo; si se repite, el motor de IA está saturado.`
+          : humanizar(mensaje),
+      });
     } finally {
+      clearTimeout(tope);
       clearInterval(latido);
       res.end();
     }

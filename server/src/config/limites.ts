@@ -10,6 +10,10 @@ export interface Limites {
   videoMaxMB: number;
   mensajesEnContexto: number;
   resumirCadaMensajes: number;
+  /** Tiempo máximo por llamada a un motor de IA (después se reintenta o se cae a otro). */
+  segundosMaxPorLlamadaIA: number;
+  /** Tiempo máximo total de una respuesta del chat antes de avisar al cliente. */
+  segundosMaxPorRespuesta: number;
   calidad: { revisa: string[]; minCaracteres: number };
   busquedaWebMaxPorDia: number;
   alertaPresupuestoUsd: number;
@@ -23,6 +27,8 @@ const POR_DEFECTO: Limites = {
   videoMaxMB: 20,
   mensajesEnContexto: 12,
   resumirCadaMensajes: 16,
+  segundosMaxPorLlamadaIA: 75,
+  segundosMaxPorRespuesta: 170,
   calidad: { revisa: ['plan-semanal', 'plan-diario', 'lista-compras', 'veredicto-probador', 'catalogacion'], minCaracteres: 400 },
   busquedaWebMaxPorDia: 40,
   alertaPresupuestoUsd: 10,

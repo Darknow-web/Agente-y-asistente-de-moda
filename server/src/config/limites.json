@@ -7,9 +7,18 @@
   "videoMaxMB": 20,
   "mensajesEnContexto": 12,
   "resumirCadaMensajes": 16,
+  "segundosMaxPorLlamadaIA": 75,
+  "segundosMaxPorRespuesta": 170,
+  "_comentarioTiempos": "Tiempo máximo que se espera a un motor por llamada (luego se reintenta o se cae a otro motor) y tiempo máximo total de una respuesta del chat antes de avisar al cliente.",
   "calidad": {
     "_comentario": "Qué respuestas pasan por el agente de Calidad antes de enviarse.",
-    "revisa": ["plan-semanal", "plan-diario", "lista-compras", "veredicto-probador", "catalogacion"],
+    "revisa": [
+      "plan-semanal",
+      "plan-diario",
+      "lista-compras",
+      "veredicto-probador",
+      "catalogacion"
+    ],
     "minCaracteres": 400
   },
   "busquedaWebMaxPorDia": 40,

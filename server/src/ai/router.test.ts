@@ -202,6 +202,26 @@ describe('Router.generar', () => {
     expect(respuesta.proveedor).toBe('gemini');
   });
 
+  it('corta una llamada que no responde a tiempo, reintenta y cae a Gemini', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
+    vi.stubEnv('MOTOR_ESTILISMO', 'claude:claude-sonnet-5-5');
+    const { r, gemini, claude } = nuevoRouter();
+    // Claude "se cuelga": solo termina cuando la señal se aborta (como hace un SDK real).
+    claude.generar = async (modelo, opciones) => {
+      claude.llamadas.push({ modelo, opciones });
+      await new Promise<void>((_, rechazar) => opciones.senal?.addEventListener('abort', () => rechazar(new ErrorProveedor('cancelada', 'claude', false))));
+      throw new Error('inalcanzable');
+    };
+    const limites = await import('../config/limites.js');
+    vi.spyOn(limites, 'leerLimites').mockReturnValue({ ...limites.leerLimites(), segundosMaxPorLlamadaIA: 0.02 });
+
+    const { respuesta } = await r.generar('estilismo', opcionesBase);
+    expect(claude.llamadas).toHaveLength(2);
+    expect(gemini.llamadas).toHaveLength(1);
+    expect(respuesta.proveedor).toBe('gemini');
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('no respondió en 0.02 s'));
+  });
+
   it('si Gemini falla dos veces, propaga el error (no hay a quién caer)', async () => {
     const { r, gemini } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];

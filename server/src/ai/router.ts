@@ -18,6 +18,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { NombreAgente, RegistroUso } from '../../../shared/types.js';
+import { leerLimites } from '../config/limites.js';
 import { ProveedorClaude } from './claude.js';
 import { estimarCostoUsd } from './costos.js';
 import { ProveedorGemini } from './gemini.js';
@@ -309,14 +310,34 @@ export class Router {
 
   /** Llama al proveedor; si el error es recuperable, espera y reintenta UNA vez. */
   private async generarConReintento(motor: Motor, opciones: OpcionesGenerar): Promise<Respuesta> {
-    const proveedor = this.obtenerProveedor(motor.proveedor);
     try {
-      return await proveedor.generar(motor.modelo, opciones);
+      return await this.generarConTiempoMax(motor, opciones);
     } catch (error) {
       if (!(error instanceof ErrorProveedor) || !error.recuperable || opciones.senal?.aborted) throw error;
       console.warn(`[router] ${motor.proveedor}/${motor.modelo} falló (${error.message}); reintentando una vez…`);
       if (this.esperaReintentoMs > 0) await new Promise((r) => setTimeout(r, this.esperaReintentoMs));
-      return await proveedor.generar(motor.modelo, opciones);
+      return await this.generarConTiempoMax(motor, opciones);
+    }
+  }
+
+  /**
+   * Una llamada al proveedor con tiempo máximo (limites.json → segundosMaxPorLlamadaIA). Sin esto, un
+   * motor saturado puede dejar la petición abierta para siempre y el chat "colgado". Al vencer el
+   * tiempo se lanza un error recuperable: se reintenta una vez y, si era Claude, se cae a Gemini.
+   */
+  private async generarConTiempoMax(motor: Motor, opciones: OpcionesGenerar): Promise<Respuesta> {
+    const proveedor = this.obtenerProveedor(motor.proveedor);
+    const segundos = leerLimites().segundosMaxPorLlamadaIA;
+    if (!(segundos > 0)) return proveedor.generar(motor.modelo, opciones);
+    const tiempo = AbortSignal.timeout(segundos * 1000);
+    const senal = opciones.senal ? AbortSignal.any([opciones.senal, tiempo]) : tiempo;
+    try {
+      return await proveedor.generar(motor.modelo, { ...opciones, senal });
+    } catch (error) {
+      if (tiempo.aborted && !opciones.senal?.aborted) {
+        throw new ErrorProveedor(`${motor.proveedor}/${motor.modelo} no respondió en ${segundos} s`, motor.proveedor, true, error);
+      }
+      throw error;
     }
   }
 }
