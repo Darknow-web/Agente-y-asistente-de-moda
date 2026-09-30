@@ -6,11 +6,9 @@ que se despliega en Cloud Run desde Google AI Studio.
 ## Firebase: dónde va cada cosa
 
 - La configuración pública del cliente vive en **`src/lib/firebase.ts`** y se lee de variables
-  `VITE_FIREBASE_*` (archivo `.env`) con respaldo en **`src/lib/firebase-config.json`**, que **sí está
-  versionado** (son valores públicos por diseño). Si vas a conectar este proyecto a Firebase Firestore y
-  Authentication, **escribe los valores en ese archivo JSON** (claves `apiKey`, `authDomain`, `projectId`,
-  `storageBucket`, `messagingSenderId`, `appId`) para que sobrevivan a cualquier sincronización con GitHub;
-  no crees otro archivo de inicialización ni lo añadas a `.gitignore`.
+  `VITE_FIREBASE_*` (archivo `.env`) con respaldo en `src/lib/firebase-config.json`.
+  Si vas a conectar este proyecto a Firebase Firestore y Authentication, **rellena esas variables o ese
+  archivo JSON**; no crees otro archivo de inicialización.
 - Las reglas de seguridad ya existen y son la fuente de verdad: **`firestore.rules`** y **`storage.rules`**
   en la raíz. No las sobrescribas. Si necesitas cambiarlas, edítalas ahí y explica el cambio.
 - El servidor usa `firebase-admin` con las credenciales por defecto de Cloud Run (no requiere archivo de llave).

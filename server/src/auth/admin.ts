@@ -25,6 +25,10 @@ export function bucketNombre(): string {
   return env('FIREBASE_STORAGE_BUCKET') || env('VITE_FIREBASE_STORAGE_BUCKET') || (proyectoId() ? `${proyectoId()}.firebasestorage.app` : '');
 }
 
+export function baseDeDatosId(): string {
+  return env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID') || '';
+}
+
 export function firebaseListo(): { listo: boolean; problema?: string } {
   if (app) return { listo: true };
   if (problema) return { listo: false, problema };
@@ -64,9 +68,8 @@ export function iniciarFirebase(): App | null {
 export function db(): Firestore {
   const a = iniciarFirebase();
   if (!a) throw new Error(problema ?? 'Firebase no disponible');
-  // AI Studio crea Firestore como base de datos con nombre propio (FIRESTORE_DATABASE_ID), no "(default)".
-  const nombreBd = env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID');
-  return nombreBd ? getFirestore(a, nombreBd) : getFirestore(a);
+  const dbId = baseDeDatosId();
+  return dbId ? getFirestore(a, dbId) : getFirestore(a);
 }
 
 export function auth() {

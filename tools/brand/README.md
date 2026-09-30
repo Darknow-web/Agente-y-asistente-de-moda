@@ -9,12 +9,7 @@ inclinación de la aguja) se aplica a todos los archivos a la vez.
 ```bash
 pip install fonttools cairosvg pillow
 python3 tools/brand/build_brand.py .          # exporta a src/brand/ y public/
-python3 tools/brand/opciones.py               # hoja comparativa de propuestas (solo previsualización)
 ```
-
-La carpeta `tools/brand/out/` es salida de trabajo local (previsualizaciones PNG/SVG) y **no se versiona**;
-lo que usa la app está en `src/brand/` y `public/`. La hoja con las propuestas aprobadas se conserva en
-`docs/marca/propuestas-isotipo.png`.
 
 Los parámetros están al inicio de `isotipo_svg()` (radios de los dos arcos, posición y largo de la aguja,
 grosor del hilo). La fuente del wordmark (Bodoni Moda 500) está en `fonts/` y se convierte a trazados,

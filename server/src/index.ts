@@ -41,19 +41,40 @@ app.use('/api', rutasChat);
 app.use('/api', rutasJobs);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Esa ruta no existe.' }));
 
-// Cliente compilado
-const dist = [path.resolve(process.cwd(), 'dist'), path.resolve(import.meta.dirname ?? '.', '../../../dist')].find((d) => fs.existsSync(path.join(d, 'index.html')));
-if (dist) {
-  app.use(express.static(dist, { maxAge: esProduccion() ? '1h' : 0, index: false }));
-  app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+// Cliente: en desarrollo se usa Vite en modo middleware; en producción se sirve dist/
+if (esProduccion()) {
+  const dist = [
+    path.resolve(process.cwd(), 'dist'),
+    path.resolve(import.meta.dirname ?? '.', '../../../dist'),
+  ].find((d) => fs.existsSync(path.join(d, 'index.html')));
+
+  if (dist) {
+    app.use(express.static(dist, { maxAge: '1h', index: false }));
+    app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+  } else {
+    app.get('/', (_req, res) =>
+      res.type('text').send('SASTRA API en marcha. El cliente no está compilado: ejecuta `npm run build`.')
+    );
+  }
 } else {
-  app.get('/', (_req, res) => res.type('text').send('SASTRA API en marcha. El cliente no está compilado: ejecuta `npm run build` o usa `npm run dev`.'));
+  const { createServer: createViteServer } = await import('vite');
+  const vite = await createViteServer({
+    server: { middlewareMode: true, host: '0.0.0.0' },
+    appType: 'spa',
+  });
+  app.use(vite.middlewares);
 }
 
 app.use(manejadorErrores);
 
-const puerto = Number(env('PORT', '8080'));
-app.listen(puerto, () => {
+const puerto = Number(env('PORT', '3000'));
+app.listen(puerto, '0.0.0.0', () => {
   const fb = iniciarFirebase();
-  console.log(`[sastra] servidor en http://localhost:${puerto} · modo motor: ${env('MOTOR_MODO', 'real')} · firebase: ${fb ? 'inicializado' : 'sin configurar'} · llave gemini: ${env('GEMINI_API_KEY') ? 'sí' : 'no'} · llave claude: ${env('ANTHROPIC_API_KEY') ? 'sí' : 'no'}`);
+  console.log(
+    `[sastra] servidor en http://0.0.0.0:${puerto} · modo motor: ${env('MOTOR_MODO', 'real')} · firebase: ${
+      fb ? 'inicializado' : 'sin configurar'
+    } · llave gemini: ${env('GEMINI_API_KEY') ? 'sí' : 'no'} · llave claude: ${
+      env('ANTHROPIC_API_KEY') ? 'sí' : 'no'
+    }`
+  );
 });

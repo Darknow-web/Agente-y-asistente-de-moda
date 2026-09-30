@@ -1,0 +1,12 @@
+{
+  "name": "SASTRA — Tu departamento de moda",
+  "description": "Sastra conoce cada prenda que tienes, te viste cada mañana según tu día y tu clima, cuida tu ropa y te acompaña cuando sales a comprar.",
+  "requestUserLocation": true,
+  "requestCamera": true,
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -8,13 +8,9 @@ server/dist/
 .env
 .env.*
 !.env.example
+src/lib/firebase-config.json
 *.pem
 service-account*.json
-# (src/lib/firebase-config.json SÍ se versiona: es la configuración pública del cliente,
-#  y si no viaja con el código, AI Studio la borra cada vez que vuelve a sincronizar con GitHub)
-
-# salida local del generador de marca (se regenera con tools/brand/*.py)
-tools/brand/out/
 
 # emuladores y logs
 firebase-debug.log

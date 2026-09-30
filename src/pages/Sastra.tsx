@@ -64,14 +64,12 @@ export function Sastra() {
       .conversaciones()
       .then((lista) => {
         if (cancelado || !lista.length) return;
-        // Solo ?c=: el ?texto= ya fue consumido por el efecto anterior y no debe volver a la URL.
         setParams({ c: lista[0]!.id }, { replace: true });
       })
       .catch(() => undefined);
     return () => {
       cancelado = true;
     };
-    // Solo al montar sin conversación.
   }, []);
 
   // Cargar la conversación cuando cambia ?c=

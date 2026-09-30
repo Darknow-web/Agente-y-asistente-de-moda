@@ -28,7 +28,7 @@ Aimé Leon Dore y los seleccionados de Awwwards en la categoría lujo). Patrones
   tinta), `isotipo-simple.svg` (disco + S, sin aguja, para favicon e íconos ≤ 48 px), `isotipo-sin-disco.svg`
   (S y aguja en tinta, para usos especiales), `wordmark.svg` (SASTRA en Bodoni Moda 500 convertido a trazados),
   `lockup.svg` (disco + wordmark) y sus variantes en lino. Se conservan las propuestas anteriores
-  (`isotipo-hilo-v1.svg`, `isotipo-espina-v2.svg`) y la hoja comparativa en `docs/marca/propuestas-isotipo.png`.
+  (`isotipo-hilo-v1.svg`, `isotipo-espina-v2.svg`) y la hoja comparativa en `tools/brand/out/opciones.png`.
   Todo en `src/brand/`.
 
 ## Paleta

@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "concurrently -n web,api -c blue,magenta \"vite\" \"tsx watch server/src/index.ts\"",
+    "dev": "tsx watch server.ts",
     "dev:web": "vite",
     "dev:api": "tsx watch server/src/index.ts",
     "build": "vite build && tsc -p tsconfig.server.json",

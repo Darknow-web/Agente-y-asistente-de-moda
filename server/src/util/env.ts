@@ -30,9 +30,7 @@ export function cargarEnv(): void {
 }
 
 export function env(nombre: string, porDefecto = ''): string {
-  let v = process.env[nombre];
-  // AI Studio puede inyectar la llave de Gemini con el nombre API_KEY: la usamos como respaldo.
-  if (nombre === 'GEMINI_API_KEY' && (v === undefined || v === '')) v = process.env.API_KEY;
+  const v = process.env[nombre];
   return v === undefined || v === '' ? porDefecto : v;
 }
 
