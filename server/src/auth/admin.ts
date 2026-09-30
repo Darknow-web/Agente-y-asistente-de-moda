@@ -64,7 +64,9 @@ export function iniciarFirebase(): App | null {
 export function db(): Firestore {
   const a = iniciarFirebase();
   if (!a) throw new Error(problema ?? 'Firebase no disponible');
-  return getFirestore(a);
+  // AI Studio crea Firestore como base de datos con nombre propio (FIRESTORE_DATABASE_ID), no "(default)".
+  const nombreBd = env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID');
+  return nombreBd ? getFirestore(a, nombreBd) : getFirestore(a);
 }
 
 export function auth() {
