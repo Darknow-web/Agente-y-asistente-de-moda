@@ -1,7 +1,7 @@
 /**
  * Inicialización de Firebase en el cliente.
  * La configuración pública se lee de las variables VITE_FIREBASE_* (archivo .env) y, si están
- * vacías, de `src/lib/firebase-config.json` (opcional, ignorado por git).
+ * vacías, de `src/lib/firebase-config.json` (versionado: son valores públicos por diseño).
  * Este módulo nunca lanza al cargar: expone `firebaseConfigurado` y `problemaConfig`.
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
