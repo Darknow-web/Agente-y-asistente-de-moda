@@ -35,11 +35,9 @@ Señales visuales fiables:
 - **Seda:** brillo suave y cambiante con la luz, caída fluida, arrugas finas. Blusas y pañuelos.
 - **Viscosa y rayón:** caída muy fluida, brillo ligero, arrugas fáciles. Vestidos y blusas de precio medio.
 - **Poliéster:** brillo uniforme y algo plástico, casi sin arrugas, caída rígida en tejidos planos o muy fluida en gasas. Común en blusas, forros, ropa de fiesta económica.
-- **Nylon:** superficie lisa, crujiente, repele agua. Cortavientos, parkas, mochilas.
 - **Denim:** trama diagonal visible, tono índigo con desgaste; muy liso y elástico indica elastano.
 - **Cuero:** grano irregular, brillo suave, pliegues que marcan. Cuero sintético: grano perfectamente regular, brillo plástico, bordes cortados sin fibra.
 - **Ante o nobuk:** mate, aterciopelado, cambia de tono al pasar la mano.
-- **Plumas:** compartimentos acolchados, volumen alto, muy ligero al vestir.
 
 Cuando la foto no permite decidir, registra la opción más probable y pregunta: "Parece algodón. Si tienes la etiqueta a mano, dime la composición y ajusto el cuidado". La tela decide `usosMaxAntesDeLavar`, así que siempre vale la pena confirmarla en prendas de lana, seda, cashmere y cuero.
 
