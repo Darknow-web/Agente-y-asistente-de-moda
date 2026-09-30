@@ -21,11 +21,13 @@ Aimé Leon Dore y los seleccionados de Awwwards en la categoría lujo). Patrones
 
 - **Nombre:** SASTRA. "Sastre" + "śāstra" (tratado, conocimiento). El conocimiento del sastre.
 - **Tagline:** Tu departamento de moda.
-- **Imagotipo:** una S dibujada con un solo hilo que sale del ojo de una aguja. El hilo cae con una
-  leve comba (como un hilo real) y forma dos bowls tangentes, el inferior más grande, como una S clásica.
-- **Versiones:** `isotipo.svg` (hilo con comba, tamaños ≥ 48 px), `isotipo-simple.svg` (hilo recto,
-  para favicon e íconos ≤ 48 px), `wordmark.svg` (SASTRA en Bodoni Moda 500 convertido a trazados),
-  `lockup.svg` (isotipo + wordmark), variantes en lino sobre tinta. Todo en `src/brand/`.
+- **Imagotipo:** una S tipográfica de alto contraste (Bodoni Moda) atravesada en diagonal por una aguja;
+  del ojo sale un hilo en añil que da una vuelta y cae a la derecha, y una puntada discontinua acompaña el
+  bowl inferior. Elegido por el cliente sobre una referencia visual propia.
+- **Versiones:** `isotipo.svg` (completo, tamaños ≥ 48 px), `isotipo-simple.svg` (solo la S, para favicon e
+  íconos ≤ 48 px: a ese tamaño la diagonal se confundiría con un signo de dólar), `wordmark.svg` (SASTRA en
+  Bodoni Moda 500 convertido a trazados), `lockup.svg` (isotipo + wordmark), variantes en lino sobre tinta.
+  `isotipo-hilo-v1.svg` conserva la primera propuesta (S dibujada con hilo). Todo en `src/brand/`.
 
 ## Paleta
 

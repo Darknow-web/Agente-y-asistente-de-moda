@@ -101,7 +101,7 @@ Siempre valen la pena:
 - **Cremalleras** atascadas: jabón seco o grafito en los dientes. Deslizador roto: se cambia solo esa pieza.
 - **Pilling y bolitas:** peine de cashmere o rasuradora de tejidos, con la prenda extendida, sin presionar.
 
-Al sastre: ajustar cintura, acortar largos, cambiar cremallera completa, entallar, reparar desgarros en tela de sastrería. Al zapatero: tapas de tacón, medias suelas, hebillas, pegar suelas, teñir rayaduras. Un ajuste de largo o cintura cuesta menos que una prenda nueva y cambia la caída de todo el look. No vale la pena: rasgados grandes en punto fino, telas quemadas, sintéticos rotos junto a costuras muy tensas.
+Al sastre: ajustar cintura, acortar largos, cambiar cremallera completa, entallar, reparar desgarros en tela de sastrería. Al zapatero: tapas de tacón, medias suelas, hebillas, pegar suelas, teñir rayaduras. No vale la pena: rasgados grandes en punto fino, telas quemadas, sintéticos rotos junto a costuras muy tensas.
 
 ## Limpieza profunda de temporada
 

@@ -145,8 +145,8 @@ def lockup_svg(iso_size=120, gap=28, wm_height=44, ink=INK, bg=None, pad=32):
     # extraer el <g ...>...</g> del wordmark
     inner = wm[wm.index('<g'):wm.rindex('</svg>')]
     W = pad*2 + iso_size + gap + ww; H = pad*2 + iso_size
-    iso = isotipo_svg(ink=ink, bg=None)
-    iso_inner = iso[iso.index('<path'):iso.rindex('</svg>')].replace(f'fill="{LINO}"', f'fill="{bg or LINO}"')
+    iso = isotipo_v2_svg(ink=ink, acento=(LINO if bg == '#000000' else ACENTO), bg=None)
+    iso_inner = iso[iso.index('<path'):iso.rindex('</svg>')].replace(f'stroke="{LINO}" stroke-width="14.0"', f'stroke="{bg or LINO}" stroke-width="14.0"').replace(f'fill="{LINO}"/>', f'fill="{bg or LINO}"/>')
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W:.2f} {H:.2f}" width="{W:.2f}" height="{H:.2f}">']
     if bg:
         parts.append(f'<rect width="{W:.2f}" height="{H:.2f}" fill="{bg}"/>')
@@ -166,7 +166,7 @@ def save(name, svg, png_w=None):
     return p
 
 
-if __name__ == '__main__':
+def _principal():
     save('isotipo', isotipo_svg(bg=LINO), 800)
     save('isotipo-fino', isotipo_svg(stroke=3.6, w_eye=6.0, bg=LINO), 800)
     save('isotipo-oscuro', isotipo_svg(bg='#000000', ink=LINO), 800)
@@ -197,16 +197,17 @@ def export_repo(repo):
     for d in (brand, pub, icons): os.makedirs(d, exist_ok=True)
     def w(path, svg): open(path, 'w').write(svg)
     # isotipos (fondo transparente)
-    w(f'{brand}/isotipo.svg', isotipo_svg())
-    w(f'{brand}/isotipo-lino.svg', isotipo_svg(ink=LINO).replace(f'fill="{LINO}"/>', 'fill="#000000"/>'))
-    w(f'{brand}/isotipo-simple.svg', isotipo_svg(stroke=9, w_eye=13, simple=True))
-    w(f'{brand}/isotipo-simple-lino.svg', isotipo_svg(stroke=9, w_eye=13, simple=True, ink=LINO).replace(f'fill="{LINO}"/>', 'fill="#000000"/>'))
+    w(f'{brand}/isotipo.svg', isotipo_v2_svg())
+    w(f'{brand}/isotipo-lino.svg', isotipo_v2_svg(ink=LINO, acento=LINO, bg=None).replace(f'stroke="{LINO}" stroke-width="14.0"', 'stroke="#000000" stroke-width="14.0"').replace(f'fill="{LINO}"/>\n</svg>', 'fill="#000000"/>\n</svg>'))
+    w(f'{brand}/isotipo-simple.svg', isotipo_v2_svg(simple=True))
+    w(f'{brand}/isotipo-simple-lino.svg', isotipo_v2_svg(simple=True, ink=LINO))
+    w(f'{brand}/isotipo-hilo-v1.svg', isotipo_svg())  # versión anterior (hilo formando la S), por si se quiere recuperar
     wm, _, _ = wordmark_svg(); w(f'{brand}/wordmark.svg', wm)
     wm2, _, _ = wordmark_svg(ink=LINO); w(f'{brand}/wordmark-lino.svg', wm2)
     w(f'{brand}/lockup.svg', lockup_svg(pad=0))
     w(f'{brand}/lockup-lino.svg', lockup_svg(pad=0, ink=LINO).replace(f'fill="{LINO}"/>', 'fill="#000000"/>'))
     # favicon svg: cuadrado lino con S simple en tinta
-    fav = isotipo_svg(stroke=13, w_eye=16, simple=True, bg=LINO)
+    fav = isotipo_v2_svg(simple=True, bg=LINO, alto_S=170.0)
     w(f'{pub}/favicon.svg', fav)
     # PNG icons
     for size, name in [(192, f'{icons}/icon-192.png'), (512, f'{icons}/icon-512.png'), (180, f'{pub}/apple-touch-icon.png'), (32, f'{pub}/favicon-32.png'), (16, f'{pub}/favicon-16.png')]:
@@ -230,5 +231,93 @@ def export_repo(repo):
     cairosvg.svg2png(bytestring=og.encode(), write_to=f'{pub}/og.png', output_width=1200, output_height=630)
     print('exportado a', brand, pub)
 
-if __name__ == '__main__' and len(sys.argv) > 1:
-    export_repo(sys.argv[1])
+
+
+# ---------------------------------------------------------------- isotipo v2: S tipográfica + aguja
+ACENTO = '#1F2F6B'
+
+def glifo_S(weight=500):
+    """Devuelve (path_d, bounds, upem) del glifo S en Bodoni Moda."""
+    f = TTFont(os.path.join(FONTS, f'BodoniModa-{weight}.woff'))
+    gs = f.getGlyphSet(); gname = f.getBestCmap()[ord('S')]
+    pen = SVGPathPen(gs); gs[gname].draw(pen)
+    bp = BoundsPen(gs); gs[gname].draw(bp)
+    return pen.getCommands(), bp.bounds, f['head'].unitsPerEm
+
+
+def isotipo_v2_svg(bg=None, ink=INK, acento=ACENTO, size=240, alto_S=150.0, hilo=True, simple=False):
+    """S tipográfica (Bodoni Moda) atravesada en diagonal por una aguja; el hilo sale del ojo,
+    da una vuelta y cae a la derecha; una puntada discontinua acompaña el bowl inferior.
+    simple=True: solo la S (para favicon e íconos pequeños, donde la diagonal se confundiría con $)."""
+    d, (x0, y0, x1, y1), upem = glifo_S()
+    s = alto_S / (y1 - y0)
+    ancho = (x1 - x0) * s
+    ox = 106 - ancho / 2
+    oy = 128 + alto_S / 2
+    tr = f'translate({ox - x0*s:.3f},{oy + y0*s:.3f}) scale({s:.5f},{-s:.5f})'
+    partes = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {VB} {VB}" width="{size}" height="{size}">']
+    if bg:
+        partes.append(f'<rect width="{VB}" height="{VB}" fill="{bg}"/>')
+    if simple:
+        # S centrada, sin aguja
+        tr_c = f'translate({120 - ancho/2 - x0*s:.3f},{oy + y0*s:.3f}) scale({s:.5f},{-s:.5f})'
+        partes.append(f'<path transform="{tr_c}" d="{d}" fill="{ink}"/>')
+        partes.append('</svg>')
+        return '\n'.join(partes)
+    partes.append(f'<path transform="{tr}" d="{d}" fill="{ink}"/>')
+    # aguja: ojo arriba a la derecha, punta abajo a la izquierda
+    ojo = (163.0, 30.0); punta = (72.0, 216.0)
+    w_ag = 9.0
+    body, eye, (ecx, ecy) = needle(ojo, punta, w_eye=w_ag, eye_len=19.0, eye_w=3.4)
+    if hilo:
+        # vuelta del hilo alrededor de un punto arriba-derecha del ojo y caída hacia la derecha
+        cx_, cy_ = ecx + 17, ecy - 6
+        r = 13.0
+        pts = []
+        for i in range(0, 34):
+            a = math.radians(205 + i * 10)
+            pts.append((cx_ + r * math.cos(a), cy_ + r * math.sin(a)))
+        loop = f'M {ecx:.1f} {ecy:.1f} L {pts[0][0]:.1f} {pts[0][1]:.1f} ' + ' '.join(f'L {x:.1f} {y:.1f}' for x, y in pts[1:])
+        fx, fy = pts[-1]
+        loop += f' C {fx+18:.1f} {fy+14:.1f}, {fx+26:.1f} {fy+44:.1f}, {fx+14:.1f} {fy+78:.1f}'
+        partes.append(f'<path d="{loop}" fill="none" stroke="{acento}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>')
+        # arco fino que acompaña el bowl inferior izquierdo (por fuera del trazo)
+        partes.append(f'<path d="M 52 148 c -12 26, 0 56, 32 66" fill="none" stroke="{acento}" stroke-width="1.8" stroke-linecap="round"/>')
+        # puntada discontinua por fuera del bowl inferior derecho
+        partes.append(f'<path d="M 152 138 c 24 10, 30 44, 8 62 c -9 7, -20 10, -30 9" fill="none" stroke="{acento}" stroke-width="1.7" stroke-dasharray="4.5 3.5" stroke-linecap="round"/>')
+    halo = (f'<line x1="{ojo[0]}" y1="{ojo[1]}" x2="{punta[0]}" y2="{punta[1]}" stroke="{bg or LINO}" '
+            f'stroke-width="{w_ag + 5:.1f}" stroke-linecap="round"/>')
+    partes.append(halo)
+    partes.append(f'<path d="{body}" fill="{ink}"/>')
+    partes.append(eye.replace(LINO, bg or LINO))
+    partes.append('</svg>')
+    return '\n'.join(partes)
+
+
+def hoja_v2():
+    iso = lambda **k: isotipo_v2_svg(**k)
+    wm, _, _ = wordmark_svg(ink=LINO, height=56)
+    wm_inner = wm[wm.index('<g'):wm.rindex('</svg>')]
+    def inner(svg):
+        return svg[svg.index('<path'):svg.rindex('</svg>')]
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760">
+<rect width="1200" height="760" fill="{LINO}"/>
+<g transform="translate(60,40) scale(1.4)">{inner(iso())}</g>
+<g transform="translate(440,40) scale(0.6)">{inner(iso())}</g>
+<g transform="translate(600,40) scale(0.3)">{inner(iso(simple=True))}</g>
+<g transform="translate(690,40) scale(0.15)">{inner(iso(simple=True))}</g>
+<g transform="translate(740,40) scale(0.0833)">{inner(iso(simple=True))}</g>
+<rect x="60" y="420" width="1080" height="300" fill="#000"/>
+<g transform="translate(100,440) scale(1.1)">{inner(iso(bg='#000', ink=LINO, acento=LINO))}</g>
+<g transform="translate(420,540)">{wm_inner}</g>
+</svg>'''
+
+
+
+
+if __name__ == '__main__':
+    _principal()
+    save('isotipo-v2', isotipo_v2_svg(bg=LINO), 800)
+    save('hoja-v2', hoja_v2(), 1600)
+    if len(sys.argv) > 1:
+        export_repo(sys.argv[1])
