@@ -10,8 +10,8 @@
  * Al generar (Router.generar):
  *  - Si el mensaje trae video y el proveedor no lo soporta → se re-enruta a Gemini (mismo nivel).
  *  - Si el proveedor falla con un error recuperable → se reintenta una vez (800 ms) y, si era
- *    Claude, se cae a Gemini; si era Gemini, se prueba una vez con el modelo de respaldo de otro nivel
- *    (flash → lite, pro → flash, lite → flash).
+ *    Claude, se cae a Gemini; si era Gemini, se cae a Claude al mismo nivel (si hay llave y no hay video)
+ *    o, si no, se prueba una vez con el modelo de respaldo de otro nivel (flash → lite, pro → flash, lite → flash).
  *  - Se calcula el costo estimado y se avisa al gancho `onUso` (registro de uso para Firestore).
  */
 
@@ -292,6 +292,12 @@ export class Router {
         console.warn(`[router] Claude falló dos veces para "${agente}" (${error.message}); se cae a Gemini (${modeloGemini}).`);
         motor = { proveedor: 'gemini', modelo: modeloGemini, nivel: motor.nivel };
         respuesta = await this.generarConReintento(motor, opciones);
+      } else if (motor.proveedor === 'gemini' && this.proveedorDisponible('claude') && !tieneVideo(opciones.mensajes)) {
+        // Gemini saturado y hay llave de Claude → otra empresa, otra infraestructura, al mismo nivel.
+        const modeloClaude = modeloDeNivel('claude', motor.nivel);
+        console.warn(`[router] Gemini ${motor.modelo} falló dos veces para "${agente}" (${error.message}); se cae a Claude (${modeloClaude}).`);
+        motor = { proveedor: 'claude', modelo: modeloClaude, nivel: motor.nivel };
+        respuesta = await this.generarConTiempoMax(motor, opciones);
       } else if (motor.proveedor === 'gemini') {
         // Un modelo de Gemini saturado (503) o que no responde → un intento con el modelo de respaldo
         // de otro nivel, para que un pico de demanda en un modelo no deje al cliente sin respuesta.

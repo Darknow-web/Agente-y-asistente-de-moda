@@ -130,7 +130,9 @@ export function armarPeticionClaude(modelo: string, opciones: OpcionesGenerar): 
   const peticion: Anthropic.MessageStreamParams = {
     model: modelo,
     max_tokens: opciones.maxTokensSalida ?? MAX_TOKENS_SALIDA_POR_DEFECTO,
-    system: opciones.sistema || undefined,
+    // Las instrucciones (persona + conocimiento + contexto del cliente) son largas y se repiten en cada
+    // vuelta: con cache_control la entrada repetida cuesta ~10 %.
+    system: opciones.sistema ? [{ type: 'text', text: opciones.sistema, cache_control: { type: 'ephemeral' } }] : undefined,
     messages: aMensajesClaude(opciones.mensajes),
   };
   if (tools.length) peticion.tools = tools;

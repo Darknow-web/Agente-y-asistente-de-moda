@@ -162,7 +162,7 @@ describe('mapeo a Claude', () => {
     expect(conPensamiento.thinking).toEqual({ type: 'adaptive' });
     expect(conPensamiento.temperature).toBeUndefined();
     expect(conPensamiento.max_tokens).toBe(8000);
-    expect(conPensamiento.system).toBe('Eres SASTRA');
+    expect(conPensamiento.system).toEqual([{ type: 'text', text: 'Eres SASTRA', cache_control: { type: 'ephemeral' } }]);
     expect(conPensamiento.tools).toEqual([
       { name: 'buscar_prendas', description: 'Busca prendas del guardarropa', input_schema: herramienta.parametros },
       { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },

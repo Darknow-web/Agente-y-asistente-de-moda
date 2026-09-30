@@ -19,12 +19,14 @@ uso, sube en proporción. No hay mensualidad fija: solo se paga lo que se usa.
 
 | Modelo | Entrada | Salida | Para qué lo usa SASTRA |
 |---|---|---|---|
-| Gemini 2.5 Flash-Lite | $0.10 | $0.40 | Cuidado, ajuste diario, resúmenes |
-| Gemini 2.5 Flash | $0.30 | $2.50 | Dirección, Guardarropa (fotos), Estilismo, Probador (video), Calidad |
-| Gemini 2.5 Pro | $1.25 | $10.00 | Plan semanal completo, análisis de compras |
-| Claude Haiku 4.5 | $1.00 | $5.00 | Opcional |
+| Claude Haiku 4.5 | $1.00 | $5.00 | Dirección, Estilismo, Cuidado, Probador (la conversación). Con caché de instrucciones, la entrada repetida cuesta ~$0.10 |
+| Gemini Flash-Lite | $0.10 | $0.40 | Ajuste diario, resúmenes; respaldo de la conversación si Claude falla |
+| Gemini Flash | $0.30 | $2.50 | Guardarropa (fotos), Calidad, video |
+| Gemini Pro | $1.25 | $10.00 | Plan semanal completo, análisis de compras |
 | Claude Sonnet 5.5 | $2.00 | $10.00 | Opcional (mejor conversación) |
 | Claude Opus 5.5 | $4.00 | $20.00 | Opcional (máxima calidad) |
+
+Los nombres exactos de cada nivel (por ejemplo, qué versión de Flash) están en `server/src/config/modelos.json`.
 
 Los precios se actualizan en `server/src/ai/costos.ts`; `npm run smoke` los usa para estimar el costo de una
 llamada real. Fuente: [ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing) y

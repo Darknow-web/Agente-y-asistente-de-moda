@@ -191,6 +191,9 @@ export function Sastra() {
               case 'texto':
                 actualizarSastra((m) => ({ ...m, texto: m.texto + ev.delta }));
                 break;
+              case 'texto-reiniciar':
+                actualizarSastra((m) => ({ ...m, texto: '' }));
+                break;
               case 'pregunta':
                 actualizarSastra((m) => ({ ...m, texto: `${m.texto.trimEnd()}\n\n${ev.texto}` }));
                 break;

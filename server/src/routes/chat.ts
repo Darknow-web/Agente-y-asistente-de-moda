@@ -160,11 +160,23 @@ rutasChat.post(
       const partesAdjuntos = adjuntos.map(adjuntoAParte).filter((p): p is Parte => !!p);
       const historial = historialAModelo(conversacion, partesAdjuntos, lim.mensajesEnContexto);
 
+      // Texto en vivo: lo que el Director escribe se muestra al instante. Si después cambia (otra
+      // vuelta, revisión de Calidad, fuentes), el evento `fin` trae la versión definitiva.
+      let enVivo = '';
       const resultado = await correrDirector({
         ctx,
         historial,
         adjuntosActuales: partesAdjuntos,
         onDepartamento: (agente, estado) => enviar(res, { tipo: 'departamento', agente, estado }),
+        onTexto: (delta) => {
+          enVivo += delta;
+          enviar(res, { tipo: 'texto', delta });
+        },
+        onNuevaVuelta: () => {
+          if (!enVivo) return;
+          enVivo = '';
+          enviar(res, { tipo: 'texto-reiniciar' });
+        },
         senal: abortar.signal,
       });
 
@@ -183,8 +195,10 @@ rutasChat.post(
         textoFinal += '\n\nFuentes: ' + fuentes.map((f) => `${f.titulo || 'enlace'} (${f.url})`).join(' · ');
       }
 
-      // Emitimos el texto por tramos para una lectura fluida
-      for (const tramo of trocear(textoFinal)) {
+      // Completar lo que no se transmitió en vivo (o reemplazar todo si Calidad lo cambió)
+      const pendiente = textoFinal.startsWith(enVivo) ? textoFinal.slice(enVivo.length) : null;
+      if (pendiente === null) enviar(res, { tipo: 'texto-reiniciar' });
+      for (const tramo of trocear(pendiente ?? textoFinal)) {
         if (abortar.signal.aborted) break;
         enviar(res, { tipo: 'texto', delta: tramo });
       }

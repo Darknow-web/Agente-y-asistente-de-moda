@@ -32,6 +32,10 @@ export interface OpcionesDirector {
   historial: MensajeModelo[]; // ya incluye el último mensaje del usuario (con adjuntos)
   adjuntosActuales: Parte[]; // imagen/video del último mensaje, para pasar a departamentos
   onDepartamento?: (agente: NombreAgente, estado: 'trabajando' | 'listo') => void;
+  /** Texto del Director en vivo (solo del Director; los departamentos no se transmiten). */
+  onTexto?: (delta: string) => void;
+  /** El Director empieza otra vuelta: lo transmitido hasta ahora era provisional. */
+  onNuevaVuelta?: () => void;
   senal?: AbortSignal;
 }
 
@@ -73,6 +77,8 @@ export async function correrDirector(op: OpcionesDirector): Promise<ResultadoDir
     herramientas: [delegarA, ...herramientas('actualizar_perfil', 'listar_prendas', 'registrar_uso', 'marcar_lavada')],
     ejecutar,
     maxVueltas: 6,
+    onTexto: op.onTexto,
+    onNuevaVuelta: op.onNuevaVuelta,
     senal: op.senal,
   });
 

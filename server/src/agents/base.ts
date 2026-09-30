@@ -80,6 +80,8 @@ export interface OpcionesEjecutar {
   onTexto?: (delta: string) => void;
   /** Se llama cada vez que el modelo pide una herramienta (para eventos de progreso). */
   onHerramienta?: (llamada: ParteLlamadaHerramienta) => void;
+  /** Se llama al empezar cada vuelta después de la primera (el texto emitido antes era provisional). */
+  onNuevaVuelta?: () => void;
   senal?: AbortSignal;
 }
 
@@ -108,6 +110,7 @@ export async function ejecutarAgente(op: OpcionesEjecutar): Promise<ResultadoAge
 
   while (vueltas < max) {
     vueltas++;
+    if (vueltas > 1) op.onNuevaVuelta?.();
     const esUltima = vueltas === max;
     const { respuesta, costoUsd: c } = await router.generar(
       op.agente,
