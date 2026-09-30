@@ -150,7 +150,24 @@ export async function entrarConGoogle(): Promise<void> {
       return;
     }
     if (codigo === 'auth/popup-closed-by-user') return;
-    throw e;
+    throw new Error(explicarErrorAuth(codigo, e));
+  }
+}
+
+/** Traduce los códigos de Firebase Auth más comunes a un mensaje con la acción concreta. */
+function explicarErrorAuth(codigo: string, e: unknown): string {
+  const dominio = typeof window !== 'undefined' ? window.location.hostname : '';
+  switch (codigo) {
+    case 'auth/unauthorized-domain':
+      return `Firebase no reconoce esta dirección (${dominio}). Añádela en la consola de Firebase › Authentication › Settings › Authorized domains y vuelve a intentar.`;
+    case 'auth/operation-not-allowed':
+      return 'El acceso con Google está apagado. Actívalo en la consola de Firebase › Authentication › Sign-in method › Google.';
+    case 'auth/popup-blocked':
+      return 'El navegador bloqueó la ventana de Google. Permite ventanas emergentes para esta página y vuelve a intentar.';
+    case 'auth/network-request-failed':
+      return 'Sin conexión con Google. Revisa tu internet y vuelve a intentar.';
+    default:
+      return e instanceof Error ? e.message : 'No se pudo iniciar sesión.';
   }
 }
 
