@@ -1,0 +1,25 @@
+{
+  "_comentario": "Qué motor y modelo usa cada agente. 'proveedor': gemini | claude. 'nivel' para gemini: lite | flash | pro (se traduce al nombre real del modelo en gemini.ts). Para claude se escribe el ID exacto del modelo. Se puede sobrescribir con variables MOTOR_<AGENTE>=proveedor:modelo. Si falta la llave del proveedor, cae a Gemini.",
+  "gemini": {
+    "_comentario": "Nombres reales de los modelos por nivel. Se validan al arrancar y en `npm run smoke`. Si Google publica versiones nuevas, se cambian aquí.",
+    "lite": "gemini-2.5-flash-lite",
+    "flash": "gemini-2.5-flash",
+    "pro": "gemini-2.5-pro"
+  },
+  "claude": {
+    "_comentario": "Modelos disponibles de Claude por nivel, por si algún agente se cambia a Claude.",
+    "lite": "claude-haiku-4-5",
+    "flash": "claude-sonnet-5-5",
+    "pro": "claude-opus-5-5"
+  },
+  "agentes": {
+    "director": { "proveedor": "gemini", "nivel": "flash" },
+    "guardarropa": { "proveedor": "gemini", "nivel": "flash" },
+    "estilismo": { "proveedor": "gemini", "nivel": "flash" },
+    "planificacion": { "proveedor": "gemini", "nivel": "pro", "nivelDiario": "lite" },
+    "cuidado": { "proveedor": "gemini", "nivel": "lite" },
+    "compras": { "proveedor": "gemini", "nivel": "pro", "nivelBusqueda": "flash" },
+    "probador": { "proveedor": "gemini", "nivel": "flash" },
+    "calidad": { "proveedor": "gemini", "nivel": "flash", "encendido": true }
+  }
+}

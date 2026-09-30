@@ -1,0 +1,54 @@
+{
+  "name": "sastra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SASTRA — tu departamento de moda. Asistente y agentes autónomos de moda.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n web,api -c blue,magenta \"vite\" \"tsx watch server/src/index.ts\"",
+    "dev:web": "vite",
+    "dev:api": "tsx watch server/src/index.ts",
+    "build": "vite build && tsc -p tsconfig.server.json",
+    "start": "node server/dist/server/src/index.js",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "tsx server/scripts/smoke.ts",
+    "emuladores": "firebase emulators:start --only auth,firestore,storage"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "@google/genai": "^2.24.0",
+    "express": "^5.2.1",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.9.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.37.0",
+    "prettier": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.46.0",
+    "vite": "^8.3.1",
+    "vitest": "^3.2.0"
+  }
+}

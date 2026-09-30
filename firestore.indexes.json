@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "usos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "prendaId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avisos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "leido", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

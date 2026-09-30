@@ -1,0 +1,198 @@
+@import './tokens.css';
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Reglas de la app (mínimas). Los tokens y utilidades viven en tokens.css.
+   ------------------------------------------------------------------ */
+
+#raiz {
+  min-height: 100dvh;
+}
+
+/* atajos de tipografía */
+.serif {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+
+/* enlace de texto con línea (sin subrayado nativo) */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  color: var(--acento);
+}
+[data-tema='oscuro'] a:hover {
+  color: #ffffff;
+}
+
+/* campos de formulario: línea inferior, sin cajas */
+.campo {
+  display: block;
+  width: 100%;
+  height: var(--altura-control);
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--texto);
+  border-radius: 0;
+  background: transparent;
+  color: var(--texto);
+  font: 400 15px/1.4 var(--f-ui);
+  outline: none;
+}
+.campo::placeholder {
+  color: var(--texto-2);
+  opacity: 1;
+}
+textarea.campo {
+  height: auto;
+  min-height: 96px;
+  padding: 12px 4px;
+  resize: vertical;
+  line-height: 1.5;
+}
+select.campo {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--texto) 50%),
+    linear-gradient(135deg, var(--texto) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 7px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 28px;
+}
+.campo-etiqueta {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-2);
+  margin-bottom: 2px;
+}
+
+/* chip de categoría */
+.chip {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radio-pill);
+  border: 1px solid var(--texto);
+  background: transparent;
+  color: var(--texto);
+  font: 500 13px/1 var(--f-ui);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
+}
+.chip[aria-selected='true'],
+.chip[aria-pressed='true'] {
+  background: var(--texto);
+  color: var(--inverso);
+}
+
+/* carga: un hilo que recorre la línea */
+.hilo-cargando {
+  position: relative;
+  height: 1px;
+  width: 100%;
+  background: var(--linea);
+  overflow: hidden;
+}
+.hilo-cargando::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: var(--acento);
+  animation: hilo-recorre 1.6s var(--ease) infinite;
+}
+@keyframes hilo-recorre {
+  from {
+    left: -40%;
+  }
+  to {
+    left: 100%;
+  }
+}
+.hilo-ondea {
+  animation: hilo-ondea 1.2s ease-in-out infinite;
+}
+@keyframes hilo-ondea {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+}
+
+/* cursor de escritura durante el streaming */
+.escribiendo::after {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--texto-2);
+  animation: parpadeo 1s steps(2) infinite;
+}
+@keyframes parpadeo {
+  to {
+    opacity: 0;
+  }
+}
+
+/* listas de definición del perfil */
+dl {
+  margin: 0;
+}
+dt {
+  font-size: 12px;
+  color: var(--texto-2);
+  margin-bottom: 4px;
+}
+dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* ocultar barra de desplazamiento en filas de chips */
+.sin-barra {
+  scrollbar-width: none;
+}
+.sin-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* oculto visualmente pero accesible */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* bloque copiable del diagnóstico */
+.bloque-copiable {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 400 13px/1.55 var(--f-ui);
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  margin: 0;
+}

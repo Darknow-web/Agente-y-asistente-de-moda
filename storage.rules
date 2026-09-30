@@ -1,0 +1,14 @@
+rules_version = '2';
+// SASTRA — reglas de Storage: fotos de prendas, privadas por usuario.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/{resto=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // Las escrituras las hace el servidor (Admin SDK) tras comprimir y validar.
+      allow write: if false;
+    }
+    match /{resto=**} {
+      allow read, write: if false;
+    }
+  }
+}

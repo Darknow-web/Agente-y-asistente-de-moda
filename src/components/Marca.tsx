@@ -1,0 +1,118 @@
+/**
+ * Marca SASTRA como componentes React (a partir de src/brand/isotipo.svg y lockup.svg).
+ * Tinta = currentColor para adaptarse al modo oscuro; el ojo de la aguja usa `fondo`.
+ */
+import type { SVGProps } from 'react';
+
+const HILO_COMBA =
+  'M 157.76 78.21 C 147.97 73.24, 142.08 74.28, 134.46 66.38 A 34.0 34.0 0 1 0 110.00 124.00 A 43.0 43.0 0 1 1 72.76 188.50';
+const HILO_RECTO =
+  'M 157.76 78.21 C 150.77 74.66, 139.90 72.02, 134.46 66.38 A 34.0 34.0 0 1 0 110.00 124.00 A 43.0 43.0 0 1 1 72.76 188.50';
+
+const AGUJA =
+  'M 154.00 84.00 L 157.35 83.43 L 159.47 82.07 L 161.39 80.57 L 163.20 79.01 L 164.30 76.98 L 165.40 74.95 L 166.50 72.92 L 167.60 70.89 L 168.70 68.86 L 169.81 66.84 L 170.91 64.82 L 172.02 62.79 L 173.13 60.77 L 174.24 58.75 L 175.35 56.73 L 176.47 54.71 L 177.59 52.70 L 178.70 50.68 L 179.83 48.67 L 180.95 46.65 L 182.08 44.64 L 183.20 42.63 L 184.33 40.62 L 185.47 38.62 L 186.60 36.61 L 187.74 34.61 L 188.88 32.61 L 190.03 30.61 L 191.17 28.61 L 192.32 26.61 L 193.48 24.62 L 194.64 22.63 L 195.80 20.64 L 196.96 18.66 L 198.14 16.68 L 199.31 14.70 L 200.50 12.72 L 201.69 10.76 L 202.89 8.79 L 204.11 6.84 L 204.11 6.84 L 202.82 8.75 L 201.52 10.65 L 200.20 12.53 L 198.88 14.42 L 197.55 16.30 L 196.22 18.17 L 194.88 20.05 L 193.53 21.92 L 192.19 23.78 L 190.84 25.65 L 189.48 27.51 L 188.12 29.37 L 186.76 31.23 L 185.40 33.09 L 184.03 34.94 L 182.66 36.79 L 181.29 38.65 L 179.91 40.49 L 178.54 42.34 L 177.16 44.19 L 175.78 46.03 L 174.39 47.88 L 173.01 49.72 L 171.62 51.56 L 170.23 53.40 L 168.83 55.24 L 167.44 57.08 L 166.05 58.91 L 164.65 60.75 L 163.25 62.58 L 161.85 64.41 L 160.44 66.25 L 159.04 68.08 L 157.63 69.91 L 156.23 71.73 L 154.82 73.56 L 154.13 75.85 L 153.54 78.22 L 153.16 80.71 L 154.00 84.00 Z';
+
+// Wordmark SASTRA (Bodoni Moda 500 convertido a trazados)
+const LETRA_S =
+  'M624 -29Q500 -29 409.0 9.5Q318 48 255 116L143 -20H108V408H148Q167 326 203.5 254.0Q240 182 296.5 128.0Q353 74 429.5 43.0Q506 12 607 12Q710 12 785.0 47.5Q860 83 901.0 149.5Q942 216 942 310Q942 396 899.0 455.0Q856 514 784.0 557.0Q712 600 627.0 637.0Q542 674 457.0 715.0Q372 756 300.0 811.5Q228 867 185.0 947.0Q142 1027 142 1142Q142 1257 199.5 1341.5Q257 1426 353.5 1473.0Q450 1520 565 1520Q662 1520 743.0 1489.5Q824 1459 885 1397L996 1520H1029V1098H991Q965 1223 908.5 1307.5Q852 1392 769.0 1434.0Q686 1476 583 1476Q447 1476 376.0 1411.0Q305 1346 305 1238Q305 1161 348.0 1107.5Q391 1054 461.0 1013.0Q531 972 615.5 935.0Q700 898 784.0 855.5Q868 813 938.5 754.0Q1009 695 1051.5 611.5Q1094 528 1094 408Q1094 276 1035.5 177.5Q977 79 871.0 25.0Q765 -29 624 -29Z';
+const LETRA_A =
+  'M425 468V507H1064V468ZM831 1529 1347 39H1503V0H892V39H1089L703 1234L286 39H498V0H57V39H241L765 1529Z';
+const LETRA_T =
+  'M349 0V39H569V1461H391Q306 1461 250.0 1431.0Q194 1401 162.0 1346.0Q130 1291 115.5 1214.0Q101 1137 98 1042H57V1500H1305V1042H1266Q1263 1137 1248.0 1214.0Q1233 1291 1200.5 1346.0Q1168 1401 1112.5 1431.0Q1057 1461 971 1461H793V39H1013V0Z';
+const LETRA_R =
+  'M418 756V779H715Q811 779 877.5 817.5Q944 856 978.5 931.5Q1013 1007 1013 1119Q1013 1231 978.5 1307.0Q944 1383 877.5 1422.0Q811 1461 715 1461H57V1500H729Q884 1500 1000.5 1459.0Q1117 1418 1181.5 1333.5Q1246 1249 1246 1119Q1246 989 1185.5 909.0Q1125 829 1009.5 792.5Q894 756 729 756ZM57 0V39H711V0ZM272 21V1475H496V21ZM1219 -11Q1128 -11 1076.5 20.5Q1025 52 1001.5 105.5Q978 159 972.0 226.0Q966 293 965.0 364.0Q964 435 957.5 502.0Q951 569 927.5 622.5Q904 676 852.0 708.0Q800 740 708 740H418V761H781Q923 761 1006.5 722.0Q1090 683 1132.0 618.0Q1174 553 1188.5 475.5Q1203 398 1204.0 321.0Q1205 244 1208.5 179.0Q1212 114 1230.5 75.0Q1249 36 1300 36Q1332 36 1357.0 42.5Q1382 49 1402 59L1416 22Q1392 9 1339.0 -1.0Q1286 -11 1219 -11Z';
+
+function TrazosIsotipo({ fondo, simple }: { fondo: string; simple: boolean }) {
+  return (
+    <>
+      <path
+        d={simple ? HILO_RECTO : HILO_COMBA}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={simple ? 9 : 5.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d={AGUJA} fill="currentColor" />
+      <ellipse
+        cx="157.76"
+        cy="78.21"
+        rx="8.5"
+        ry="1.6"
+        transform="rotate(-57 157.76 78.21)"
+        fill={fondo}
+      />
+    </>
+  );
+}
+
+function Wordmark() {
+  return (
+    <g fill="currentColor" transform="translate(-3.050,43.181) scale(0.02824,-0.02824)">
+      <path d={LETRA_S} />
+      <path transform="translate(1488,0)" d={LETRA_A} />
+      <path transform="translate(3368,0)" d={LETRA_S} />
+      <path transform="translate(4856,0)" d={LETRA_T} />
+      <path transform="translate(6537,0)" d={LETRA_R} />
+      <path transform="translate(8319,0)" d={LETRA_A} />
+    </g>
+  );
+}
+
+interface PropsIsotipo extends Omit<SVGProps<SVGSVGElement>, 'fill'> {
+  /** Lado en px */
+  tamano?: number;
+  /** Color del ojo de la aguja (el fondo sobre el que se apoya) */
+  fondo?: string;
+  /** Hilo recto y más grueso para tamaños ≤ 48 px */
+  simple?: boolean;
+  titulo?: string;
+}
+
+export function Isotipo({ tamano = 40, fondo = 'var(--fondo)', simple, titulo, ...resto }: PropsIsotipo) {
+  const esSimple = simple ?? tamano <= 48;
+  return (
+    <svg
+      viewBox="0 0 240 240"
+      width={tamano}
+      height={tamano}
+      role={titulo ? 'img' : undefined}
+      aria-hidden={titulo ? undefined : true}
+      {...resto}
+    >
+      {titulo ? <title>{titulo}</title> : null}
+      <TrazosIsotipo fondo={fondo} simple={esSimple} />
+    </svg>
+  );
+}
+
+interface PropsLockup extends Omit<SVGProps<SVGSVGElement>, 'fill'> {
+  /** Alto en px; el ancho se deriva (relación 422.34 : 120) */
+  altura?: number;
+  fondo?: string;
+  titulo?: string;
+}
+
+export function Lockup({ altura = 32, fondo = 'var(--fondo)', titulo = 'SASTRA', ...resto }: PropsLockup) {
+  const ancho = (altura * 422.34) / 120;
+  return (
+    <svg viewBox="0 0 422.34 120" width={ancho} height={altura} role="img" {...resto}>
+      <title>{titulo}</title>
+      <g transform="scale(0.5)">
+        <TrazosIsotipo fondo={fondo} simple={false} />
+      </g>
+      <g transform="translate(148,38)">
+        <Wordmark />
+      </g>
+    </svg>
+  );
+}
+
+export function Marca(props: { variante?: 'isotipo' | 'lockup'; altura?: number; fondo?: string }) {
+  const { variante = 'lockup', altura = 32, fondo } = props;
+  return variante === 'isotipo' ? (
+    <Isotipo tamano={altura} fondo={fondo} titulo="SASTRA" />
+  ) : (
+    <Lockup altura={altura} fondo={fondo} />
+  );
+}

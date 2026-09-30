@@ -1,0 +1,17 @@
+{
+  "_comentario": "Límites para controlar costo y calidad. Se pueden editar sin tocar código.",
+  "mensajesPorUsuarioPorDia": 60,
+  "imagenLadoMaxPx": 1024,
+  "imagenMaxMB": 4,
+  "videoMaxSegundos": 60,
+  "videoMaxMB": 20,
+  "mensajesEnContexto": 12,
+  "resumirCadaMensajes": 16,
+  "calidad": {
+    "_comentario": "Qué respuestas pasan por el agente de Calidad antes de enviarse.",
+    "revisa": ["plan-semanal", "plan-diario", "lista-compras", "veredicto-probador", "catalogacion"],
+    "minCaracteres": 400
+  },
+  "busquedaWebMaxPorDia": 40,
+  "alertaPresupuestoUsd": 10
+}

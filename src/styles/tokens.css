@@ -1,0 +1,261 @@
+/* ============================================================
+   SASTRA — sistema de diseño (ver docs/DISEÑO.md)
+   Editorial de lujo silencioso: lino y tinta, serif de alto contraste,
+   aire, fotografía protagonista, movimiento con intención.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Schibsted+Grotesk:ital,wght@0,400..700;1,400..700&display=swap');
+
+:root {
+  /* color */
+  --lino: #eeeae1;
+  --papel: #f7f5f0;
+  --hilo: #d9d3c7;
+  --piedra: #5e5952;
+  --tinta: #000000;
+  --anil: #1f2f6b;
+
+  --fondo: var(--lino);
+  --superficie: var(--papel);
+  --linea: var(--hilo);
+  --texto: var(--tinta);
+  --texto-2: var(--piedra);
+  --acento: var(--anil);
+  --inverso: var(--lino);
+
+  /* tipografía */
+  --f-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
+  --f-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --t-display: clamp(2.75rem, 6vw + 1rem, 5.5rem);
+  --t-h1: clamp(2rem, 3vw + 1rem, 3.5rem);
+  --t-h2: clamp(1.5rem, 1.5vw + 1rem, 2.25rem);
+  --t-h3: 1.25rem;
+  --t-body: 1rem;
+  --t-body-lg: 1.0625rem;
+  --t-small: 0.8125rem;
+  --t-micro: 0.6875rem;
+
+  /* espacio (múltiplos de 8) */
+  --s-1: 0.5rem;
+  --s-2: 1rem;
+  --s-3: 1.5rem;
+  --s-4: 2rem;
+  --s-5: 3rem;
+  --s-6: 4rem;
+  --s-7: 6rem;
+  --s-8: 8rem;
+  --s-9: 10rem;
+
+  /* retícula */
+  --margen: 20px;
+  --gutter: 16px;
+  --ancho-max: 1440px;
+  --ancho-texto: 68ch;
+
+  /* movimiento */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-1: 200ms;
+  --dur-2: 300ms;
+  --dur-3: 500ms;
+
+  /* forma */
+  --radio-0: 0;
+  --radio-pill: 999px;
+  --altura-control: 48px;
+
+  color-scheme: light;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --margen: 40px;
+    --gutter: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --margen: 80px;
+  }
+}
+
+/* Modo oscuro: chat nocturno y pantallas de foto */
+[data-tema='oscuro'] {
+  --fondo: var(--tinta);
+  --superficie: #0f0e0c;
+  --linea: #2a2823;
+  --texto: var(--lino);
+  --texto-2: #a8a39a;
+  --acento: var(--lino);
+  --inverso: var(--tinta);
+  color-scheme: dark;
+}
+
+/* base */
+html {
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--f-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+/* tipografía de display */
+.display,
+.h1,
+.h2,
+.h3 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+.display {
+  font-size: var(--t-display);
+  line-height: 1;
+  font-variation-settings: 'opsz' 96;
+}
+.h1 {
+  font-size: var(--t-h1);
+  line-height: 1.05;
+  font-variation-settings: 'opsz' 72;
+}
+.h2 {
+  font-size: var(--t-h2);
+  line-height: 1.12;
+  font-variation-settings: 'opsz' 48;
+}
+.h3 {
+  font-size: var(--t-h3);
+  line-height: 1.25;
+  font-variation-settings: 'opsz' 24;
+}
+.cursiva {
+  font-style: italic;
+}
+
+/* texto */
+.cuerpo {
+  font-size: var(--t-body);
+  max-width: var(--ancho-texto);
+}
+.pequeno {
+  font-size: var(--t-small);
+  color: var(--texto-2);
+}
+.etiqueta {
+  font-size: var(--t-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+/* controles */
+.boton,
+.boton-2 {
+  font: 500 0.9375rem/1 var(--f-ui);
+  letter-spacing: 0.04em;
+  height: var(--altura-control);
+  padding: 0 1.5rem;
+  border-radius: var(--radio-0);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease),
+    opacity var(--dur-1) var(--ease);
+  text-decoration: none;
+}
+.boton {
+  background: var(--texto);
+  color: var(--inverso);
+  border: 1px solid var(--texto);
+}
+.boton:hover {
+  opacity: 0.88;
+}
+.boton-2 {
+  background: transparent;
+  color: var(--texto);
+  border: 1px solid var(--texto);
+}
+.boton-2:hover {
+  background: var(--texto);
+  color: var(--inverso);
+}
+.boton:disabled,
+.boton-2:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 3px;
+}
+
+hr,
+.linea {
+  border: 0;
+  border-top: 1px solid var(--linea);
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* contenedor */
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin-inline: auto;
+  padding-inline: var(--margen);
+}
+
+/* entrada orquestada (una por pantalla) */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.aparece {
+  animation: aparecer var(--dur-3) var(--ease) both;
+}
+.aparece-2 {
+  animation: aparecer var(--dur-3) var(--ease) 120ms both;
+}
+.aparece-3 {
+  animation: aparecer var(--dur-3) var(--ease) 240ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

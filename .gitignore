@@ -1,0 +1,24 @@
+# dependencias y builds
+node_modules/
+dist/
+server/dist/
+.vite/
+
+# entorno y secretos (nunca subir llaves)
+.env
+.env.*
+!.env.example
+src/lib/firebase-config.json
+*.pem
+service-account*.json
+
+# emuladores y logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+*.log
+
+# sistema
+.DS_Store
+Thumbs.db
