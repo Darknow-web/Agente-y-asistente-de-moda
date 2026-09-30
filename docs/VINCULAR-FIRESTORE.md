@@ -100,6 +100,11 @@ repositorio con contenido parecido a este:
 ```
 
 Si al sincronizar aparece un "Resolve conflicts" que quiere **borrar** ese archivo, pulsa Cancel.
+
+Para **volver a vincular desde cero** (otro proyecto u otra app de AI Studio): borra ese archivo del
+repositorio, vacía en la pestaña Secrets las variables `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`,
+`FIRESTORE_DATABASE_ID` y todas las `VITE_FIREBASE_*` (si quedan con valores viejos, mandan sobre el archivo
+nuevo), y vuelve a usar Settings › Integrations › Firebase. La integración escribe el archivo otra vez.
 Estos valores son públicos por diseño; lo que nunca va al repositorio es `GEMINI_API_KEY`.
 
 ## 7. Primer acceso
