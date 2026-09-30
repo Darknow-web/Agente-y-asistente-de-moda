@@ -7,26 +7,73 @@ import { applicationDefault, getApps, initializeApp, type App } from 'firebase-a
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import fs from 'node:fs';
+import path from 'node:path';
 import { env } from '../util/env.js';
 
 let app: App | null = null;
 let problema: string | null = null;
+
+interface ConfigApplet {
+  projectId?: string;
+  storageBucket?: string;
+  firestoreDatabaseId?: string;
+}
+
+let appletCache: ConfigApplet | null | undefined;
+
+/**
+ * `firebase-applet-config.json` lo escribe la integración de Firebase de Google AI Studio en la raíz
+ * del repositorio (valores públicos). Sirve de respaldo cuando las variables de entorno no llegan.
+ */
+export function configApplet(): ConfigApplet {
+  if (appletCache !== undefined) return appletCache ?? {};
+  appletCache = null;
+  const candidatos = [
+    path.resolve(process.cwd(), 'firebase-applet-config.json'),
+    path.resolve(import.meta.dirname ?? '.', '../../../../firebase-applet-config.json'),
+    path.resolve(import.meta.dirname ?? '.', '../../firebase-applet-config.json'),
+  ];
+  for (const archivo of candidatos) {
+    try {
+      if (!fs.existsSync(archivo)) continue;
+      const datos = JSON.parse(fs.readFileSync(archivo, 'utf8')) as Record<string, unknown>;
+      appletCache = {
+        projectId: typeof datos.projectId === 'string' ? datos.projectId : undefined,
+        storageBucket: typeof datos.storageBucket === 'string' ? datos.storageBucket : undefined,
+        firestoreDatabaseId: typeof datos.firestoreDatabaseId === 'string' ? datos.firestoreDatabaseId : undefined,
+      };
+      break;
+    } catch {
+      /* archivo ilegible: se ignora */
+    }
+  }
+  return appletCache ?? {};
+}
 
 export function proyectoId(): string {
   return (
     env('FIREBASE_PROJECT_ID') ||
     env('GOOGLE_CLOUD_PROJECT') ||
     env('GCLOUD_PROJECT') ||
-    env('VITE_FIREBASE_PROJECT_ID')
+    env('VITE_FIREBASE_PROJECT_ID') ||
+    configApplet().projectId ||
+    ''
   );
 }
 
 export function bucketNombre(): string {
-  return env('FIREBASE_STORAGE_BUCKET') || env('VITE_FIREBASE_STORAGE_BUCKET') || (proyectoId() ? `${proyectoId()}.firebasestorage.app` : '');
+  return (
+    env('FIREBASE_STORAGE_BUCKET') ||
+    env('VITE_FIREBASE_STORAGE_BUCKET') ||
+    configApplet().storageBucket ||
+    (proyectoId() ? `${proyectoId()}.firebasestorage.app` : '')
+  );
 }
 
+/** AI Studio crea Firestore como base de datos con nombre propio, no "(default)". */
 export function baseDeDatosId(): string {
-  return env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID') || '';
+  return env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID') || configApplet().firestoreDatabaseId || '';
 }
 
 export function firebaseListo(): { listo: boolean; problema?: string } {

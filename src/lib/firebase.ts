@@ -1,7 +1,9 @@
 /**
  * Inicialización de Firebase en el cliente.
- * La configuración pública se lee de las variables VITE_FIREBASE_* (archivo .env) y, si están
- * vacías, de `src/lib/firebase-config.json` (opcional, ignorado por git).
+ * La configuración pública se lee, en este orden: variables VITE_FIREBASE_* (archivo .env),
+ * `src/lib/firebase-config.json` (opcional) y `firebase-applet-config.json` en la raíz del repositorio,
+ * que es el archivo que escribe la integración de Firebase de Google AI Studio y que sí está versionado
+ * (son valores públicos por diseño). Así la configuración sobrevive a cualquier sincronización con GitHub.
  * Este módulo nunca lanza al cargar: expone `firebaseConfigurado` y `problemaConfig`.
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
@@ -47,11 +49,14 @@ function desdeEntorno(): ConfigFirebase {
   };
 }
 
-function desdeJson(): Partial<ConfigFirebase> | null {
+type OrigenConfig = 'entorno' | 'json' | 'applet' | 'ninguno';
+
+function desdeJson(origen: 'json' | 'applet'): Partial<ConfigFirebase> | null {
   try {
-    const modulos = import.meta.glob<{ default: Record<string, unknown> }>('./firebase-config.json', {
-      eager: true,
-    });
+    const modulos =
+      origen === 'json'
+        ? import.meta.glob<{ default: Record<string, unknown> }>('./firebase-config.json', { eager: true })
+        : import.meta.glob<{ default: Record<string, unknown> }>('/firebase-applet-config.json', { eager: true });
     const modulo = Object.values(modulos)[0];
     const datos = modulo?.default ?? (modulo as unknown as Record<string, unknown> | undefined);
     if (!datos || typeof datos !== 'object') return null;
@@ -71,13 +76,14 @@ function desdeJson(): Partial<ConfigFirebase> | null {
 }
 
 let config = desdeEntorno();
-let origenConfig: 'entorno' | 'json' | 'ninguno' = config.apiKey ? 'entorno' : 'ninguno';
+let origenConfig: OrigenConfig = config.apiKey ? 'entorno' : 'ninguno';
 
-if (!config.apiKey) {
-  const json = desdeJson();
+for (const origen of ['json', 'applet'] as const) {
+  if (config.apiKey) break;
+  const json = desdeJson(origen);
   if (json?.apiKey) {
     config = { ...config, ...json };
-    origenConfig = 'json';
+    origenConfig = origen;
   }
 }
 
@@ -87,7 +93,7 @@ export const firebaseConfigurado: boolean = faltan.length === 0;
 export let problemaConfig: string | undefined = firebaseConfigurado
   ? undefined
   : origenConfig === 'ninguno'
-    ? 'No hay configuración de Firebase: faltan las variables VITE_FIREBASE_* (o src/lib/firebase-config.json).'
+    ? 'No hay configuración de Firebase: faltan las variables VITE_FIREBASE_* (o el archivo firebase-applet-config.json que escribe AI Studio al vincular Firebase).'
     : `La configuración de Firebase está incompleta: falta ${faltan.join(', ')}.`;
 
 export const proyectoId: string = config.projectId;

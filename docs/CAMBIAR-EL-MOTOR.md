@@ -27,7 +27,7 @@ Claude. Cambiar uno, todos, o mezclarlos, es editar un archivo de texto o una va
 Los niveles se traducen a modelos reales en la parte de arriba del mismo archivo:
 
 ```json
-"gemini": { "lite": "gemini-2.5-flash-lite", "flash": "gemini-2.5-flash", "pro": "gemini-2.5-pro" },
+"gemini": { "lite": "gemini-3.1-flash-lite", "flash": "gemini-3.8-flash", "pro": "gemini-3.1-pro-preview" },
 "claude": { "lite": "claude-haiku-4-5", "flash": "claude-sonnet-5-5", "pro": "claude-opus-5-5" }
 ```
 

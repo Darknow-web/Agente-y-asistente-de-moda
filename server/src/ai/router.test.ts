@@ -14,6 +14,9 @@ import {
 } from './provider.js';
 import { Router, cargarConfigModelos, reiniciarEstadoRouter, resolverMotor, validarModelos } from './router.js';
 
+// Nombres reales de los modelos de Gemini por nivel, tal como están en modelos.json (cambian con el tiempo).
+const G = cargarConfigModelos().gemini;
+
 // ------------------------------------------------------------------ dobles de prueba
 
 class ProveedorFalso implements LLMProvider {
@@ -109,18 +112,18 @@ describe('resolverMotor', () => {
 
   it('respeta MOTOR_<AGENTE>=gemini:<nivel>', () => {
     vi.stubEnv('MOTOR_CUIDADO', 'gemini:pro');
-    expect(resolverMotor('cuidado')).toEqual({ proveedor: 'gemini', modelo: 'gemini-2.5-pro', nivel: 'pro' });
+    expect(resolverMotor('cuidado')).toEqual({ proveedor: 'gemini', modelo: G.pro, nivel: 'pro' });
   });
 
   it('ignora overrides mal escritos y avisa', () => {
     vi.stubEnv('MOTOR_CUIDADO', 'openai:gpt');
-    expect(resolverMotor('cuidado').modelo).toBe('gemini-2.5-flash-lite');
+    expect(resolverMotor('cuidado').modelo).toBe(G.lite);
     expect(console.warn).toHaveBeenCalled();
   });
 
   it('cae a Gemini al mismo nivel si falta ANTHROPIC_API_KEY y avisa una sola vez por agente', () => {
     vi.stubEnv('MOTOR_ESTILISMO', 'claude:pro');
-    expect(resolverMotor('estilismo')).toEqual({ proveedor: 'gemini', modelo: 'gemini-2.5-pro', nivel: 'pro' });
+    expect(resolverMotor('estilismo')).toEqual({ proveedor: 'gemini', modelo: G.pro, nivel: 'pro' });
     resolverMotor('estilismo');
     resolverMotor('estilismo');
     expect(console.warn).toHaveBeenCalledTimes(1);
@@ -145,12 +148,12 @@ describe('Router.generar', () => {
     };
     const { respuesta, costoUsd } = await r.generar('director', opcionesBase);
     expect(gemini.llamadas).toHaveLength(1);
-    expect(gemini.llamadas[0].modelo).toBe('gemini-2.5-flash');
+    expect(gemini.llamadas[0].modelo).toBe(G.flash);
     expect(respuesta.texto).toBe('respuesta de gemini');
     // 1000 entrada × 0.30 + 500 salida × 2.50 por millón
     expect(costoUsd).toBeCloseTo(0.0003 + 0.00125, 10);
     expect(registros).toHaveLength(1);
-    expect(registros[0]).toMatchObject({ agente: 'director', proveedor: 'gemini', modelo: 'gemini-2.5-flash', tokensEntrada: 1000, tokensSalida: 500, costoEstimadoUsd: costoUsd });
+    expect(registros[0]).toMatchObject({ agente: 'director', proveedor: 'gemini', modelo: G.flash, tokensEntrada: 1000, tokensSalida: 500, costoEstimadoUsd: costoUsd });
   });
 
   it('re-enruta a Gemini (mismo nivel) cuando hay video y el proveedor no lo soporta', async () => {
@@ -161,7 +164,7 @@ describe('Router.generar', () => {
     const { respuesta } = await r.generar('estilismo', opcionesConVideo);
     expect(claude.llamadas).toHaveLength(0);
     expect(gemini.llamadas).toHaveLength(1);
-    expect(gemini.llamadas[0].modelo).toBe('gemini-2.5-pro');
+    expect(gemini.llamadas[0].modelo).toBe(G.pro);
     expect(respuesta.proveedor).toBe('gemini');
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('video'));
 
@@ -195,7 +198,7 @@ describe('Router.generar', () => {
     const { respuesta } = await r.generar('estilismo', opcionesBase);
     expect(claude.llamadas).toHaveLength(2);
     expect(gemini.llamadas).toHaveLength(1);
-    expect(gemini.llamadas[0].modelo).toBe('gemini-2.5-flash');
+    expect(gemini.llamadas[0].modelo).toBe(G.flash);
     expect(respuesta.proveedor).toBe('gemini');
   });
 
@@ -237,13 +240,13 @@ describe('validarModelos', () => {
     vi.stubEnv('MOTOR_ESTILISMO', 'claude:claude-sonnet-5-5');
     vi.stubEnv('MOTOR_CUIDADO', 'gemini:pro');
     const { r, gemini, claude } = nuevoRouter();
-    gemini.modelos = ['models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite'];
+    gemini.modelos = [`models/${G.flash}`, `models/${G.lite}`];
     claude.modelos = ['claude-sonnet-5-5', 'claude-haiku-4-5'];
 
     const resultado = await validarModelos(r);
     const porAgente = Object.fromEntries(resultado.map((x) => [x.agente, x]));
-    expect(porAgente.director).toMatchObject({ proveedor: 'gemini', modelo: 'gemini-2.5-flash', valido: true });
-    expect(porAgente.cuidado).toMatchObject({ proveedor: 'gemini', modelo: 'gemini-2.5-pro', valido: false });
+    expect(porAgente.director).toMatchObject({ proveedor: 'gemini', modelo: G.flash, valido: true });
+    expect(porAgente.cuidado).toMatchObject({ proveedor: 'gemini', modelo: G.pro, valido: false });
     expect(porAgente.estilismo).toMatchObject({ proveedor: 'claude', modelo: 'claude-sonnet-5-5', valido: true });
   });
 

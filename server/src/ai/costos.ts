@@ -37,6 +37,7 @@ export function precioDeModelo(proveedor: Proveedor, modelo: string): PrecioMode
 
   const m = modelo.toLowerCase();
   if (proveedor === 'gemini' || m.startsWith('gemini')) {
+    // Modelos sin fila propia (p. ej. la familia 3.x) se aproximan por nivel con los precios de 2.5.
     if (m.includes('flash-lite')) return TABLA_PRECIOS['gemini-2.5-flash-lite'];
     if (m.includes('flash')) return TABLA_PRECIOS['gemini-2.5-flash'];
     if (m.includes('pro')) return TABLA_PRECIOS['gemini-2.5-pro'];

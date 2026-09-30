@@ -72,7 +72,7 @@ export function Diagnostico() {
               estado={firebaseConfigurado ? 'ok' : 'falta'}
               detalle={
                 firebaseConfigurado
-                  ? `Proyecto ${proyectoId} · leída de ${origenConfig === 'json' ? 'src/lib/firebase-config.json' : 'las variables VITE_FIREBASE_*'}`
+                  ? `Proyecto ${proyectoId} · leída de ${origenConfig === 'json' ? 'src/lib/firebase-config.json' : origenConfig === 'applet' ? 'firebase-applet-config.json (AI Studio)' : 'las variables VITE_FIREBASE_*'}`
                   : problemaConfig
               }
             />

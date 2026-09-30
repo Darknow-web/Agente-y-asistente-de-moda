@@ -76,7 +76,33 @@ Si Firestore aparece como "sin-configurar", falta el ID del proyecto. Si aparece
 pero el servidor no tiene permiso: en Cloud Run, la cuenta de servicio del servicio necesita los roles
 **Cloud Datastore User** y **Storage Object Admin** (IAM › cuenta de servicio del servicio de Cloud Run).
 
-## 6. Primer acceso
+## 6. Si al refrescar AI Studio te vuelve a pedir vincular Firestore
+
+Pasa cuando la configuración que escribió la integración vive solo en archivos que **no están en GitHub**
+(`.env`). Cada vez que AI Studio vuelve a sincronizar el proyecto con el repositorio, lo que no está en
+GitHub desaparece y la app deja de ver la configuración.
+
+La solución ya está aplicada: la integración de AI Studio escribe **`firebase-applet-config.json`** en la
+raíz del proyecto, ese archivo **está versionado en GitHub** y tanto el cliente como el servidor lo leen
+como respaldo (proyecto, llaves públicas, bucket y nombre de la base de datos). Comprueba que exista en el
+repositorio con contenido parecido a este:
+
+```json
+{
+  "projectId": "<ID>",
+  "appId": "1:…:web:…",
+  "apiKey": "AIza…",
+  "authDomain": "<ID>.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-…",
+  "storageBucket": "<ID>.firebasestorage.app",
+  "messagingSenderId": "…"
+}
+```
+
+Si al sincronizar aparece un "Resolve conflicts" que quiere **borrar** ese archivo, pulsa Cancel.
+Estos valores son públicos por diseño; lo que nunca va al repositorio es `GEMINI_API_KEY`.
+
+## 7. Primer acceso
 
 La app solo deja entrar a los correos de la lista de invitados. Tu propio correo va en la variable
 `ADMIN_EMAILS` del servidor: con eso entras siempre y puedes agregar a los demás desde **Invitados**.

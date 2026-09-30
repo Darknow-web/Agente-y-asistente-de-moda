@@ -92,3 +92,10 @@ Si AI Studio no deja importar el repositorio:
 - **El botón de Google no abre o da error de dominio**: añade el dominio de la app en Authorized domains.
 - **Se agotó el límite de mensajes**: son 60 por persona al día; se cambia en
   `server/src/config/limites.json`.
+- **AI Studio muestra "Resolve conflicts"**: significa que su copia del proyecto y la versión de GitHub
+  difieren. Mira la lista de archivos cambiados (los "Unchanged files" no importan). Si solo aparecen
+  archivos generados o de documentación (`tools/brand/out/`, `docs/`), pulsa **Accept**. Si aparecen
+  `.env`, `firebase-applet-config.json`, `firestore.rules`, `storage.rules` o algo de `src/` o `server/`
+  que no cambiaste tú, pulsa **Cancel** y revisa antes: las reglas y el código del repositorio son la
+  fuente de verdad.
+- **Al refrescar AI Studio te vuelve a pedir vincular Firestore**: sigue VINCULAR-FIRESTORE.md, sección 6.
