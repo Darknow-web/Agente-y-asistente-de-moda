@@ -189,6 +189,64 @@ def _principal():
     print('ok', os.listdir(OUT))
 
 
+
+# ---------------------------------------------------------------- isotipo oficial: "Botón"
+# Disco de tinta con la S (Italiana) y la aguja en el color del fondo. Aprobado por el cliente.
+def _glifo_italiana():
+    f = TTFont(os.path.join(FONTS, 'Italiana-normal.woff'))
+    gs = f.getGlyphSet(); g = gs[f.getBestCmap()[ord('S')]]
+    pen = SVGPathPen(gs); g.draw(pen)
+    bp = BoundsPen(gs); g.draw(bp)
+    return pen.getCommands(), bp.bounds
+
+
+def _colocar_S(alto, cx, cy):
+    d, (x0, y0, x1, y1) = _glifo_italiana()
+    s = alto / (y1 - y0)
+    w = (x1 - x0) * s
+    return f'translate({cx - w/2 - x0*s:.3f},{cy + alto/2 + y0*s:.3f}) scale({s:.5f},{-s:.5f})', d
+
+
+def isotipo_boton_svg(ink=INK, fondo=LINO, bg=None, size=240, simple=False, sin_disco=False):
+    """ink: color del disco; fondo: color de la S y la aguja (normalmente el del fondo donde se apoya).
+    simple: solo disco + S (favicon, ≤ 48 px). sin_disco: S y aguja en `ink` sin disco (para usos especiales)."""
+    partes = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {VB} {VB}" width="{size}" height="{size}">']
+    if bg:
+        partes.append(f'<rect width="{VB}" height="{VB}" fill="{bg}"/>')
+    color_disco, color_forma = (None, ink) if sin_disco else (ink, fondo)
+    if color_disco:
+        partes.append(f'<circle cx="120" cy="120" r="108" fill="{color_disco}"/>')
+    tr, d = _colocar_S(130 if simple else 118, 118 if simple else 116, 122)
+    partes.append(f'<path transform="{tr}" d="{d}" fill="{color_forma}"/>')
+    if not simple:
+        ang = math.radians(-62)
+        cx, cy, L = 118, 120, 82
+        ojo = (cx + L * math.cos(ang), cy + L * math.sin(ang))
+        punta = (cx - L * math.cos(ang), cy - L * math.sin(ang))
+        body, eye, _ = needle(ojo, punta, w_eye=6.5, eye_len=14.0, eye_w=2.6)
+        halo = color_disco or (bg or LINO)
+        partes.append(f'<line x1="{ojo[0]:.1f}" y1="{ojo[1]:.1f}" x2="{punta[0]:.1f}" y2="{punta[1]:.1f}" stroke="{halo}" stroke-width="10" stroke-linecap="round"/>')
+        partes.append(f'<path d="{body}" fill="{color_forma}"/>')
+        partes.append(eye.replace(f'fill="{LINO}"', f'fill="{halo}"'))
+    partes.append('</svg>')
+    return '\n'.join(partes)
+
+
+def lockup_boton_svg(ink=INK, fondo=LINO, bg=None, iso_size=120, gap=26, wm_height=44, pad=0):
+    wm, ww, wh = wordmark_svg(height=wm_height, ink=ink)
+    inner_wm = wm[wm.index('<g'):wm.rindex('</svg>')]
+    iso = isotipo_boton_svg(ink=ink, fondo=fondo)
+    inner_iso = iso[iso.index('<circle'):iso.rindex('</svg>')]
+    W = pad * 2 + iso_size + gap + ww; H = pad * 2 + iso_size
+    partes = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W:.2f} {H:.2f}" width="{W:.2f}" height="{H:.2f}">']
+    if bg:
+        partes.append(f'<rect width="{W:.2f}" height="{H:.2f}" fill="{bg}"/>')
+    partes.append(f'<g transform="translate({pad},{pad}) scale({iso_size/240:.4f})">{inner_iso}</g>')
+    partes.append(f'<g transform="translate({pad + iso_size + gap:.2f},{pad + (iso_size - wh)/2:.2f})">{inner_wm}</g>')
+    partes.append('</svg>')
+    return '\n'.join(partes)
+
+
 # ---------------------------------------------------------------- exportación al repo
 def export_repo(repo):
     from PIL import Image
@@ -196,31 +254,32 @@ def export_repo(repo):
     brand = os.path.join(repo, 'src', 'brand'); pub = os.path.join(repo, 'public'); icons = os.path.join(pub, 'icons')
     for d in (brand, pub, icons): os.makedirs(d, exist_ok=True)
     def w(path, svg): open(path, 'w').write(svg)
-    # isotipos (fondo transparente)
-    w(f'{brand}/isotipo.svg', isotipo_v2_svg())
-    w(f'{brand}/isotipo-lino.svg', isotipo_v2_svg(ink=LINO, acento=LINO, bg=None).replace(f'stroke="{LINO}" stroke-width="14.0"', 'stroke="#000000" stroke-width="14.0"').replace(f'fill="{LINO}"/>\n</svg>', 'fill="#000000"/>\n</svg>'))
-    w(f'{brand}/isotipo-simple.svg', isotipo_v2_svg(simple=True))
-    w(f'{brand}/isotipo-simple-lino.svg', isotipo_v2_svg(simple=True, ink=LINO))
-    w(f'{brand}/isotipo-hilo-v1.svg', isotipo_svg())  # versión anterior (hilo formando la S), por si se quiere recuperar
+    # isotipos (fondo transparente). Positivo: disco tinta, S lino. Negativo (-lino): disco lino, S tinta.
+    w(f'{brand}/isotipo.svg', isotipo_boton_svg())
+    w(f'{brand}/isotipo-lino.svg', isotipo_boton_svg(ink=LINO, fondo='#000000'))
+    w(f'{brand}/isotipo-simple.svg', isotipo_boton_svg(simple=True))
+    w(f'{brand}/isotipo-simple-lino.svg', isotipo_boton_svg(ink=LINO, fondo='#000000', simple=True))
+    w(f'{brand}/isotipo-sin-disco.svg', isotipo_boton_svg(sin_disco=True))
+    w(f'{brand}/isotipo-hilo-v1.svg', isotipo_svg())  # primera propuesta (S de hilo), por si se quiere recuperar
+    w(f'{brand}/isotipo-espina-v2.svg', isotipo_v2_svg())  # segunda propuesta
     wm, _, _ = wordmark_svg(); w(f'{brand}/wordmark.svg', wm)
     wm2, _, _ = wordmark_svg(ink=LINO); w(f'{brand}/wordmark-lino.svg', wm2)
-    w(f'{brand}/lockup.svg', lockup_svg(pad=0))
-    w(f'{brand}/lockup-lino.svg', lockup_svg(pad=0, ink=LINO).replace(f'fill="{LINO}"/>', 'fill="#000000"/>'))
-    # favicon svg: cuadrado lino con S simple en tinta
-    fav = isotipo_v2_svg(simple=True, bg=LINO, alto_S=170.0)
-    w(f'{pub}/favicon.svg', fav)
+    w(f'{brand}/lockup.svg', lockup_boton_svg())
+    w(f'{brand}/lockup-lino.svg', lockup_boton_svg(ink=LINO, fondo='#000000'))
+    # favicon: disco tinta + S lino, sobre transparente
+    fav = isotipo_boton_svg(simple=True)
     # PNG icons
     for size, name in [(192, f'{icons}/icon-192.png'), (512, f'{icons}/icon-512.png'), (180, f'{pub}/apple-touch-icon.png'), (32, f'{pub}/favicon-32.png'), (16, f'{pub}/favicon-16.png')]:
         cairosvg.svg2png(bytestring=fav.encode(), write_to=name, output_width=size, output_height=size)
     # maskable: mismo con más margen (escala 0.8 centrada)
-    inner = fav[fav.index('<path'):fav.rindex('</svg>')]
-    mask = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" fill="{LINO}"/><g transform="translate(24,24) scale(0.8)">{inner}</g></svg>'
+    inner = fav[fav.index('<circle'):fav.rindex('</svg>')]
+    mask = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" fill="#000000"/><g transform="translate(24,24) scale(0.8)">{inner}</g></svg>'
     cairosvg.svg2png(bytestring=mask.encode(), write_to=f'{icons}/maskable-512.png', output_width=512, output_height=512)
     # ico
     ims = [Image.open(f'{pub}/favicon-32.png'), Image.open(f'{pub}/favicon-16.png')]
     ims[0].save(f'{pub}/favicon.ico', format='ICO', sizes=[(32, 32), (16, 16)])
     # OG image 1200x630
-    lk = lockup_svg(pad=0)
+    lk = lockup_boton_svg()
     inner = lk[lk.index('<g'):lk.rindex('</svg>')]
     import re
     vb = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', lk); lw, lh = float(vb.group(1)), float(vb.group(2))
