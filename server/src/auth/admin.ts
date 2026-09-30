@@ -112,11 +112,23 @@ export function iniciarFirebase(): App | null {
   }
 }
 
+let firestoreCache: Firestore | null = null;
+
 export function db(): Firestore {
+  if (firestoreCache) return firestoreCache;
   const a = iniciarFirebase();
   if (!a) throw new Error(problema ?? 'Firebase no disponible');
   const dbId = baseDeDatosId();
-  return dbId ? getFirestore(a, dbId) : getFirestore(a);
+  const instancia = dbId ? getFirestore(a, dbId) : getFirestore(a);
+  try {
+    // Firestore rechaza documentos con campos `undefined` (p. ej. un mensaje sin adjuntos). Con esto
+    // los ignora en vez de fallar el guardado. Solo puede llamarse antes del primer uso.
+    instancia.settings({ ignoreUndefinedProperties: true });
+  } catch {
+    /* ya estaba inicializada: se usa tal cual */
+  }
+  firestoreCache = instancia;
+  return instancia;
 }
 
 export function auth() {

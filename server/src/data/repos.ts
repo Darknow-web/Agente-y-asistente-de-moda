@@ -195,10 +195,10 @@ export async function guardarConversacion(uid: string, conversacion: Conversacio
   // Los adjuntos en base64 no se guardan en Firestore (pesan demasiado): solo su URL si la hay.
   const limpia: Conversacion = {
     ...conversacion,
-    mensajes: conversacion.mensajes.map((m) => ({
-      ...m,
-      adjuntos: m.adjuntos?.map(({ datos: _d, ...resto }) => resto),
-    })),
+    mensajes: conversacion.mensajes.map((m) => {
+      const { adjuntos, ...resto } = m;
+      return adjuntos?.length ? { ...resto, adjuntos: adjuntos.map(({ datos: _d, ...a }) => a) } : resto;
+    }),
   };
   await usuario(uid).collection('conversaciones').doc(conversacion.id).set(limpia);
 }
