@@ -56,6 +56,25 @@ export function Sastra() {
     // Solo al montar: el parámetro se consume una vez.
   }, []);
 
+  // Sin ?c= en la URL, retomamos la última conversación (salvo que se pida una nueva con ?nueva=1).
+  useEffect(() => {
+    if (conversacionId || params.get('nueva')) return;
+    let cancelado = false;
+    api
+      .conversaciones()
+      .then((lista) => {
+        if (cancelado || !lista.length) return;
+        const siguiente = new URLSearchParams(params);
+        siguiente.set('c', lista[0]!.id);
+        setParams(siguiente, { replace: true });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelado = true;
+    };
+    // Solo al montar sin conversación.
+  }, []);
+
   // Cargar la conversación cuando cambia ?c=
   useEffect(() => {
     if (conversacionId === idActualRef.current) return;
@@ -106,7 +125,7 @@ export function Sastra() {
   const irA = (id: string | null) => {
     setPanelAbierto(false);
     if (id) setParams({ c: id });
-    else setParams({});
+    else setParams({ nueva: '1' });
   };
 
   const alAdjuntar = async (archivos: FileList | null) => {
