@@ -50,10 +50,18 @@ describe('mapeo a Gemini', () => {
       { rol: 'usuario', partes: [{ tipo: 'resultado-herramienta', idLlamada: 'abc-123', nombre: 'x', resultado: { ok: true }, esError: true }] },
     ];
     const contenido = aContenidoGemini(mensajes);
-    expect(contenido[0].parts?.[0]).toEqual({ functionCall: { name: 'buscar_prendas', args: { color: 'azul' } } });
+    // Sin firma (llamada de otro motor): se manda la firma de omisión que documenta Google.
+    expect(contenido[0].parts?.[0]).toEqual({ functionCall: { name: 'buscar_prendas', args: { color: 'azul' } }, thoughtSignature: 'skip_thought_signature_validator' });
     expect(contenido[1].parts?.[0]).toEqual({ functionResponse: { name: 'buscar_prendas', response: { resultado: [{ id: 'p1' }] } } });
-    expect(contenido[2].parts?.[0]).toEqual({ functionCall: { id: 'abc-123', name: 'x', args: {} } });
+    expect(contenido[2].parts?.[0]).toEqual({ functionCall: { id: 'abc-123', name: 'x', args: {} }, thoughtSignature: 'skip_thought_signature_validator' });
     expect(contenido[3].parts?.[0]).toEqual({ functionResponse: { id: 'abc-123', name: 'x', response: { ok: true, error: true } } });
+  });
+
+  it('reenvía tal cual la firma de pensamiento de Gemini 3 en las llamadas a herramienta', () => {
+    const contenido = aContenidoGemini([
+      { rol: 'modelo', partes: [{ tipo: 'llamada-herramienta', idLlamada: 'llamada-1', nombre: 'actualizar_perfil', argumentos: { ciudad: 'Lima' }, firma: 'FIRMA==' }] },
+    ]);
+    expect(contenido[0].parts?.[0]).toEqual({ functionCall: { name: 'actualizar_perfil', args: { ciudad: 'Lima' } }, thoughtSignature: 'FIRMA==' });
   });
 
   it('mapea herramientas a functionDeclarations con JSON Schema', () => {

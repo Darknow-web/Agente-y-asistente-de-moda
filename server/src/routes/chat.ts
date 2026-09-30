@@ -223,6 +223,9 @@ function humanizar(mensaje: string): string {
   if (m.includes('429') || m.includes('quota') || m.includes('rate')) {
     return 'El motor de IA está saturado en este momento. Espera un minuto e inténtalo de nuevo.';
   }
+  if (m.includes('503') || m.includes('unavailable') || m.includes('high demand') || m.includes('overloaded')) {
+    return 'El motor de IA tiene mucha demanda ahora mismo. Espera unos segundos y vuelve a enviar el mensaje.';
+  }
   if (m.includes('firestore') || m.includes('firebase')) {
     return 'No pudimos acceder a tu armario (Firestore). Revisa Diagnóstico.';
   }
