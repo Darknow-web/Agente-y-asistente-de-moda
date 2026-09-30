@@ -3,8 +3,9 @@
   "gemini": {
     "_comentario": "Nombres reales de los modelos por nivel. Se validan al arrancar y en `npm run smoke`. Si Google publica versiones nuevas, se cambian aquí.",
     "lite": "gemini-3.1-flash-lite",
-    "flash": "gemini-3.8-flash",
-    "pro": "gemini-3.1-pro-preview"
+    "flash": "gemini-3.1-flash-lite",
+    "pro": "gemini-3.8-flash",
+    "_temporal": "30/09/2026: gemini-3.8-flash tarda 9-29 s por respuesta (saturado) y gemini-3.1-pro-preview devuelve 429 'cuota excedida' en este proyecto. Mientras dure, flash usa el lite (rápido y estable) y pro usa 3.8-flash. Cuando Flash se normalice: flash=gemini-3.8-flash, pro=gemini-3.1-pro-preview (si el proyecto ya tiene cupo)."
   },
   "claude": {
     "_comentario": "Modelos disponibles de Claude por nivel, por si algún agente se cambia a Claude.",
@@ -13,13 +14,40 @@
     "pro": "claude-opus-5-5"
   },
   "agentes": {
-    "director": { "proveedor": "gemini", "nivel": "flash" },
-    "guardarropa": { "proveedor": "gemini", "nivel": "flash" },
-    "estilismo": { "proveedor": "gemini", "nivel": "flash" },
-    "planificacion": { "proveedor": "gemini", "nivel": "pro", "nivelDiario": "lite" },
-    "cuidado": { "proveedor": "gemini", "nivel": "lite" },
-    "compras": { "proveedor": "gemini", "nivel": "pro", "nivelBusqueda": "flash" },
-    "probador": { "proveedor": "gemini", "nivel": "flash" },
-    "calidad": { "proveedor": "gemini", "nivel": "flash", "encendido": true }
+    "director": {
+      "proveedor": "gemini",
+      "nivel": "flash"
+    },
+    "guardarropa": {
+      "proveedor": "gemini",
+      "nivel": "flash"
+    },
+    "estilismo": {
+      "proveedor": "gemini",
+      "nivel": "flash"
+    },
+    "planificacion": {
+      "proveedor": "gemini",
+      "nivel": "pro",
+      "nivelDiario": "lite"
+    },
+    "cuidado": {
+      "proveedor": "gemini",
+      "nivel": "lite"
+    },
+    "compras": {
+      "proveedor": "gemini",
+      "nivel": "pro",
+      "nivelBusqueda": "flash"
+    },
+    "probador": {
+      "proveedor": "gemini",
+      "nivel": "flash"
+    },
+    "calidad": {
+      "proveedor": "gemini",
+      "nivel": "flash",
+      "encendido": true
+    }
   }
 }

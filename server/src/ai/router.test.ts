@@ -150,8 +150,8 @@ describe('Router.generar', () => {
     expect(gemini.llamadas).toHaveLength(1);
     expect(gemini.llamadas[0].modelo).toBe(G.flash);
     expect(respuesta.texto).toBe('respuesta de gemini');
-    // 1000 entrada × 0.30 + 500 salida × 2.50 por millón
-    expect(costoUsd).toBeCloseTo(0.0003 + 0.00125, 10);
+    // Costo según la tabla de precios del modelo resuelto (1000 entrada + 500 salida)
+    expect(costoUsd).toBeCloseTo(estimarCostoUsd('gemini', G.flash, 1000, 500), 10);
     expect(registros).toHaveLength(1);
     expect(registros[0]).toMatchObject({ agente: 'director', proveedor: 'gemini', modelo: G.flash, tokensEntrada: 1000, tokensSalida: 500, costoEstimadoUsd: costoUsd });
   });
@@ -223,14 +223,26 @@ describe('Router.generar', () => {
   });
 
   it('si un modelo de Gemini falla dos veces, prueba una vez con el modelo de respaldo de otro nivel', async () => {
+    vi.stubEnv('MOTOR_DIRECTOR', 'gemini:gemini-modelo-saturado'); // nivel flash por defecto
     const { r, gemini } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
     const { respuesta } = await r.generar('director', opcionesBase);
-    expect(gemini.llamadas.map((l) => l.modelo)).toEqual([G.flash, G.flash, G.lite]);
+    expect(gemini.llamadas.map((l) => l.modelo)).toEqual(['gemini-modelo-saturado', 'gemini-modelo-saturado', G.lite]);
     expect(respuesta.modelo).toBe(G.lite);
   });
 
+  it('si el modelo de respaldo es el mismo que el saturado, no lo repite: propaga el error', async () => {
+    vi.stubEnv('MOTOR_DIRECTOR', `gemini:${G.lite}`); // en modelos.json flash y lite pueden coincidir
+    const { r, gemini } = nuevoRouter();
+    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
+    if (G.flash === G.lite) {
+      await expect(r.generar('director', opcionesBase)).rejects.toBeInstanceOf(ErrorProveedor);
+      expect(gemini.llamadas).toHaveLength(2);
+    }
+  });
+
   it('si también falla el modelo de respaldo de Gemini, propaga el error', async () => {
+    vi.stubEnv('MOTOR_DIRECTOR', 'gemini:gemini-modelo-saturado');
     const { r, gemini } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
     await expect(r.generar('director', opcionesBase)).rejects.toBeInstanceOf(ErrorProveedor);
