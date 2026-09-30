@@ -222,11 +222,19 @@ describe('Router.generar', () => {
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('no respondió en 0.02 s'));
   });
 
-  it('si Gemini falla dos veces, propaga el error (no hay a quién caer)', async () => {
+  it('si un modelo de Gemini falla dos veces, prueba una vez con el modelo de respaldo de otro nivel', async () => {
     const { r, gemini } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
+    const { respuesta } = await r.generar('director', opcionesBase);
+    expect(gemini.llamadas.map((l) => l.modelo)).toEqual([G.flash, G.flash, G.lite]);
+    expect(respuesta.modelo).toBe(G.lite);
+  });
+
+  it('si también falla el modelo de respaldo de Gemini, propaga el error', async () => {
+    const { r, gemini } = nuevoRouter();
+    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
     await expect(r.generar('director', opcionesBase)).rejects.toBeInstanceOf(ErrorProveedor);
-    expect(gemini.llamadas).toHaveLength(2);
+    expect(gemini.llamadas).toHaveLength(3);
   });
 
   it('en modo simulado responde sin proveedores reales', async () => {

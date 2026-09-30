@@ -10,7 +10,8 @@
  * Al generar (Router.generar):
  *  - Si el mensaje trae video y el proveedor no lo soporta → se re-enruta a Gemini (mismo nivel).
  *  - Si el proveedor falla con un error recuperable → se reintenta una vez (800 ms) y, si era
- *    Claude, se cae a Gemini.
+ *    Claude, se cae a Gemini; si era Gemini, se prueba una vez con el modelo de respaldo de otro nivel
+ *    (flash → lite, pro → flash, lite → flash).
  *  - Se calcula el costo estimado y se avisa al gancho `onUso` (registro de uso para Firestore).
  */
 
@@ -53,6 +54,12 @@ export interface ConfigModelos {
   claude: Record<Nivel, string>;
   agentes: Record<NombreAgente, ConfigAgente>;
 }
+
+/**
+ * A qué nivel de Gemini se cae cuando el modelo del nivel pedido está saturado: flash baja a lite
+ * (más barato y con más cupo), pro baja a flash y lite sube a flash.
+ */
+const NIVEL_RESPALDO_GEMINI: Record<Nivel, Nivel> = { flash: 'lite', pro: 'flash', lite: 'flash' };
 
 export interface Motor {
   proveedor: Proveedor;
@@ -278,12 +285,22 @@ export class Router {
     try {
       respuesta = await this.generarConReintento(motor, opciones);
     } catch (error) {
-      // Claude agotó su reintento con un error recuperable → caemos a Gemini al mismo nivel.
-      if (error instanceof ErrorProveedor && error.recuperable && motor.proveedor === 'claude') {
+      if (!(error instanceof ErrorProveedor) || !error.recuperable || opciones.senal?.aborted) throw error;
+      if (motor.proveedor === 'claude') {
+        // Claude agotó su reintento con un error recuperable → caemos a Gemini al mismo nivel.
         const modeloGemini = modeloDeNivel('gemini', motor.nivel);
         console.warn(`[router] Claude falló dos veces para "${agente}" (${error.message}); se cae a Gemini (${modeloGemini}).`);
         motor = { proveedor: 'gemini', modelo: modeloGemini, nivel: motor.nivel };
         respuesta = await this.generarConReintento(motor, opciones);
+      } else if (motor.proveedor === 'gemini') {
+        // Un modelo de Gemini saturado (503) o que no responde → un intento con el modelo de respaldo
+        // de otro nivel, para que un pico de demanda en un modelo no deje al cliente sin respuesta.
+        const nivelRespaldo = NIVEL_RESPALDO_GEMINI[motor.nivel];
+        const modeloRespaldo = modeloDeNivel('gemini', nivelRespaldo);
+        if (modeloRespaldo === motor.modelo) throw error;
+        console.warn(`[router] Gemini ${motor.modelo} falló dos veces para "${agente}" (${error.message}); se prueba ${modeloRespaldo}.`);
+        motor = { proveedor: 'gemini', modelo: modeloRespaldo, nivel: nivelRespaldo };
+        respuesta = await this.generarConTiempoMax(motor, opciones);
       } else {
         throw error;
       }
