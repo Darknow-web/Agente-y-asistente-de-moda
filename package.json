@@ -8,11 +8,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "tsx watch server.ts",
+    "dev": "tsx server.ts",
     "dev:web": "vite",
     "dev:api": "tsx watch server/src/index.ts",
     "build": "vite build && tsc -p tsconfig.server.json",
-    "start": "node server/dist/server/src/index.js",
+    "start": "node server.ts",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
     "lint": "eslint .",

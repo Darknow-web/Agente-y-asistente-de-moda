@@ -37,7 +37,11 @@ export function env(nombre: string, porDefecto = ''): string {
 }
 
 export function esProduccion(): boolean {
-  return env('NODE_ENV') === 'production';
+  if (env('NODE_ENV') === 'production') return true;
+  if (!process.env.DEFAULT_APP_PORT && fs.existsSync(path.resolve(process.cwd(), 'dist/index.html'))) {
+    return true;
+  }
+  return false;
 }
 
 export function adminEmails(): string[] {
