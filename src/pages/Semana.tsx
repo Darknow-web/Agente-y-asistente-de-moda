@@ -21,6 +21,8 @@ export function Semana() {
   const { datos: prendas } = useCarga(() => api.prendas());
   const [generando, setGenerando] = useState(false);
   const [errorGenerar, setErrorGenerar] = useState<string | null>(null);
+  const [confirmarRehacer, setConfirmarRehacer] = useState(false);
+  const sinCalzado = !!prendas && prendas.length > 0 && !prendas.some((p) => p.categoria === 'calzado');
 
   const porFecha = new Map<string, PlanDia>((plan?.dias ?? []).map((d) => [d.fecha, d]));
   const prendaPorId = new Map<string, Prenda>((prendas ?? []).map((p) => [p.id, p]));
@@ -32,6 +34,7 @@ export function Semana() {
   });
 
   const planificar = async () => {
+    setConfirmarRehacer(false);
     setGenerando(true);
     setErrorGenerar(null);
     try {
@@ -150,7 +153,44 @@ export function Semana() {
               })}
             </ol>
 
+            {sinCalzado ? (
+              <p className="m-0 mt-4 text-[13px] leading-[1.45] text-[var(--texto-2)]">
+                Los looks van sin calzado porque aún no hay zapatos ni zapatillas en tu armario.{' '}
+                <Link to="/armario/nueva" className="underline underline-offset-2">
+                  Súbelos
+                </Link>{' '}
+                y, al rehacer la semana, Planificación los incluirá.
+              </p>
+            ) : null}
+
+            {errorGenerar ? (
+              <div className="mt-4">
+                <Aviso tipo="error" onCerrar={() => setErrorGenerar(null)}>
+                  {errorGenerar}
+                </Aviso>
+              </div>
+            ) : null}
+
+            {confirmarRehacer ? (
+              <div className="mt-4">
+                <Aviso
+                  tipo="info"
+                  accion={
+                    <button type="button" className="boton shrink-0" onClick={() => void planificar()}>
+                      Sí, rehacer
+                    </button>
+                  }
+                  onCerrar={() => setConfirmarRehacer(false)}
+                >
+                  Se arma un plan nuevo de hoy en adelante con lo que tengas limpio. Los días que ya pasaron se conservan.
+                </Aviso>
+              </div>
+            ) : null}
+
             <div className="flex gap-3 pt-[18px]">
+              <button type="button" className="boton-2 flex-1" onClick={() => setConfirmarRehacer(true)}>
+                Rehacer la semana
+              </button>
               <Link
                 to={`/sastra?texto=${encodeURIComponent('Quiero cambiar el look de un día de esta semana')}`}
                 className="boton-2 flex-1"

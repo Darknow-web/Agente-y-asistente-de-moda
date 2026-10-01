@@ -51,6 +51,13 @@ rutasPlanes.post(
     const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email);
     if (ctx.prendas.length < 5) throw peticionInvalida('Para planificar una semana necesito al menos cinco prendas en tu armario.');
     const { plan, resumen } = await generarSemana(ctx, semana, notas);
+    // Al rehacer una semana ya empezada, los días que ya pasaron se conservan tal como se vivieron.
+    const hoy = fechaLocal(new Date(), ctx.zona);
+    const anterior = await leerPlan(ctx.uid, semana);
+    if (anterior) {
+      const pasados = new Map(anterior.dias.filter((d) => d.fecha < hoy).map((d) => [d.fecha, d]));
+      plan.dias = plan.dias.map((d) => pasados.get(d.fecha) ?? d);
+    }
     await guardarPlan(ctx.uid, plan);
     res.status(201).json({ ...plan, resumen });
   }),
