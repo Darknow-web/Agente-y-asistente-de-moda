@@ -103,7 +103,7 @@ export function Semana() {
                 return (
                   <li
                     key={d.iso}
-                    className={`grid grid-cols-[44px_1fr_56px] items-center gap-3 py-3 ${
+                    className={`grid grid-cols-[44px_minmax(0,1fr)_40px] items-center gap-3 py-3 ${
                       d.esHoy ? 'border-b border-[var(--texto)]' : 'border-b border-[var(--linea)]'
                     } ${colorBase}`}
                     aria-current={d.esHoy ? 'date' : undefined}
@@ -116,16 +116,14 @@ export function Semana() {
 
                     {d.plan ? (
                       d.esHoy ? (
-                        <Link to="/hoy" className="flex items-center gap-3">
-                          {(() => {
-                            const p = fotoDeHoy(d.plan);
-                            return p ? (
-                              <FotoPrenda prenda={p} className="h-14 w-11 shrink-0" sizes="44px" />
-                            ) : (
-                              <span className="h-14 w-11 shrink-0 bg-[var(--hilo)]" aria-hidden="true" />
-                            );
-                          })()}
-                          <span className="serif text-[17px] leading-[1.2]">
+                        <Link to="/hoy" className="flex min-w-0 items-center gap-3">
+                          <span className="block h-14 w-11 shrink-0 overflow-hidden bg-[var(--hilo)]" aria-hidden="true">
+                            {(() => {
+                              const p = fotoDeHoy(d.plan);
+                              return p ? <FotoPrenda prenda={p} className="h-full" sizes="44px" /> : null;
+                            })()}
+                          </span>
+                          <span className="min-w-0 serif text-[17px] leading-[1.2]">
                             {nombresLook(d.plan)}
                             <br />
                             <span className="font-[family-name:var(--f-ui)] text-[12px] text-[var(--texto-2)]">
