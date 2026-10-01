@@ -29,7 +29,20 @@ rutasSalud.get(
     let modelos: RespuestaSalud['modelos'] = [];
     if (!cacheModelos || cacheModelos.hasta < Date.now()) {
       try {
-        modelos = (await validarModelos(motores)).map((m) => ({ agente: m.agente, proveedor: m.proveedor, modelo: m.modelo, valido: m.valido }));
+        const validaciones = await validarModelos(motores);
+        modelos = validaciones.map((m) => ({ agente: m.agente, proveedor: m.proveedor, modelo: m.modelo, valido: m.valido, motivo: m.motivo }));
+        // Un proveedor que no pudo listar: casi siempre es la llave. Un solo aviso, con la causa.
+        const sinLista = new Map<string, string | undefined>();
+        for (const m of validaciones) if (m.motivo === 'sin-lista' && !sinLista.has(m.proveedor)) sinLista.set(m.proveedor, m.detalle);
+        for (const [prov, detalle] of sinLista) {
+          const llave = prov === 'claude' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY';
+          const esLlave = /401|403|authentication|api key not valid|invalid x-api-key|permission/i.test(detalle ?? '');
+          detalles.push(
+            esLlave
+              ? `${prov === 'claude' ? 'Claude' : 'Gemini'} rechazó la llave ${llave}. Vuelve a pegarla en la configuración del servidor (sin espacios al inicio o al final).`
+              : `No se pudo consultar la lista de modelos de ${prov}${detalle ? ` (${detalle.slice(0, 120)})` : ''}. Puede ser la llave o la red; los agentes de ${prov} caerán al otro motor mientras tanto.`,
+          );
+        }
         cacheModelos = { hasta: Date.now() + 10 * 60 * 1000, modelos };
       } catch (e) {
         detalles.push(`No se pudieron validar los modelos: ${e instanceof Error ? e.message : String(e)}`);
@@ -37,7 +50,7 @@ rutasSalud.get(
     } else {
       modelos = cacheModelos.modelos;
     }
-    for (const m of modelos) if (!m.valido) detalles.push(`El modelo "${m.modelo}" del agente ${m.agente} no existe en ${m.proveedor}. Revisa server/src/config/modelos.json.`);
+    for (const m of modelos) if (!m.valido && m.motivo !== 'sin-lista') detalles.push(`El modelo "${m.modelo}" del agente ${m.agente} no existe en ${m.proveedor}. Revisa server/src/config/modelos.json.`);
 
     const respuesta: RespuestaSalud = {
       ok: firestore === 'ok' && (gemini === 'ok' || modo === 'simulado') && modelos.every((m) => m.valido),

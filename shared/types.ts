@@ -281,7 +281,7 @@ export interface RespuestaSalud {
   storage: 'ok' | 'sin-configurar' | 'error';
   gemini: 'ok' | 'sin-llave' | 'error';
   claude: 'ok' | 'sin-llave' | 'error';
-  modelos: { agente: NombreAgente; proveedor: string; modelo: string; valido: boolean }[];
+  modelos: { agente: NombreAgente; proveedor: string; modelo: string; valido: boolean; motivo?: 'sin-lista' | 'no-existe' }[];
   modo: 'real' | 'simulado';
   detalles?: string[];
 }

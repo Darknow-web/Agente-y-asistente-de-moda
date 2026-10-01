@@ -378,6 +378,10 @@ export interface ValidacionModelo {
   proveedor: Proveedor;
   modelo: string;
   valido: boolean;
+  /** Por qué no es válido: no se pudo listar (llave rechazada o red) o no está en la lista. */
+  motivo?: 'sin-lista' | 'no-existe';
+  /** Mensaje del proveedor cuando no se pudo listar. */
+  detalle?: string;
 }
 
 export const NOMBRES_AGENTES: readonly NombreAgente[] = [
@@ -401,6 +405,7 @@ export async function validarModelos(instancia: Router = router): Promise<Valida
   const proveedoresUsados = [...new Set(motores.map((m) => m.motor.proveedor))];
 
   const listas = new Map<Proveedor, Set<string> | null>();
+  const fallos = new Map<Proveedor, string>();
   await Promise.all(
     proveedoresUsados.map(async (prov) => {
       if (prov === 'simulado' || !instancia.proveedorDisponible(prov)) {
@@ -411,19 +416,21 @@ export async function validarModelos(instancia: Router = router): Promise<Valida
         const modelos = await instancia.obtenerProveedor(prov).listarModelos();
         listas.set(prov, new Set(modelos.map((m) => m.replace(/^models\//, ''))));
       } catch (error) {
-        console.warn(`[router] No se pudo listar los modelos de ${prov}:`, error instanceof Error ? error.message : error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(`[router] No se pudo listar los modelos de ${prov}:`, msg);
         listas.set(prov, null);
+        fallos.set(prov, msg);
       }
     }),
   );
 
-  return motores.map(({ agente, motor }) => {
-    let valido = false;
-    if (motor.proveedor === 'simulado') valido = true;
-    else {
-      const lista = listas.get(motor.proveedor);
-      valido = !!lista && lista.has(motor.modelo.replace(/^models\//, ''));
-    }
-    return { agente, proveedor: motor.proveedor, modelo: motor.modelo, valido };
+  return motores.map(({ agente, motor }): ValidacionModelo => {
+    if (motor.proveedor === 'simulado') return { agente, proveedor: motor.proveedor, modelo: motor.modelo, valido: true };
+    const lista = listas.get(motor.proveedor);
+    if (!lista) return { agente, proveedor: motor.proveedor, modelo: motor.modelo, valido: false, motivo: 'sin-lista', detalle: fallos.get(motor.proveedor) };
+    const nombre = motor.modelo.replace(/^models\//, '');
+    // Un alias ("claude-haiku-4-5") es válido si la lista trae su versión con fecha ("claude-haiku-4-5-20251001").
+    const valido = lista.has(nombre) || [...lista].some((m) => m.startsWith(nombre + '-'));
+    return { agente, proveedor: motor.proveedor, modelo: motor.modelo, valido, motivo: valido ? undefined : 'no-existe' };
   });
 }

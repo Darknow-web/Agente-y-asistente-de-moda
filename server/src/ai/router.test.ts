@@ -340,6 +340,25 @@ describe('validarModelos', () => {
     expect(porAgente.estilismo).toMatchObject({ proveedor: 'claude', modelo: 'claude-sonnet-5-5', valido: true });
   });
 
+  it('acepta un alias si la lista trae la versión con fecha, y distingue "sin lista" de "no existe"', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
+    vi.stubEnv('MOTOR_ESTILISMO', 'claude:claude-haiku-4-5');
+    vi.stubEnv('MOTOR_CUIDADO', 'claude:claude-inventado');
+    const { r, gemini, claude } = nuevoRouter();
+    gemini.modelos = [`models/${G.flash}`, `models/${G.lite}`];
+    claude.modelos = ['claude-haiku-4-5-20251001'];
+    const porAgente = Object.fromEntries((await validarModelos(r)).map((x) => [x.agente, x]));
+    expect(porAgente.estilismo).toMatchObject({ valido: true });
+    expect(porAgente.cuidado).toMatchObject({ valido: false, motivo: 'no-existe' });
+
+    claude.listarModelos = async () => {
+      throw new ErrorProveedor('No se pudo listar los modelos de Claude: authentication_error (HTTP 401)', 'claude', false);
+    };
+    const sinLista = Object.fromEntries((await validarModelos(r)).map((x) => [x.agente, x]));
+    expect(sinLista.estilismo).toMatchObject({ valido: false, motivo: 'sin-lista' });
+    expect(sinLista.estilismo.detalle).toContain('401');
+  });
+
   it('en modo simulado todo es válido', async () => {
     vi.stubEnv('MOTOR_MODO', 'simulado');
     const resultado = await validarModelos(new Router());
