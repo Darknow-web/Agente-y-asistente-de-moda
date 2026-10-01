@@ -200,6 +200,48 @@ export class ProveedorGemini implements LLMProvider {
 
     return acumulado.aRespuesta(modelo);
   }
+
+  /**
+   * Edición de imagen con un modelo generativo (p. ej. gemini-2.5-flash-image): recibe una foto y
+   * una instrucción y devuelve la imagen resultante. No forma parte del contrato LLMProvider porque
+   * solo Gemini lo ofrece aquí.
+   */
+  async generarImagen(modelo: string, op: OpcionesImagen): Promise<ImagenGenerada> {
+    const peticion = {
+      model: modelo,
+      contents: [{ role: 'user', parts: [{ text: op.instruccion }, { inlineData: { mimeType: op.imagen.mime, data: op.imagen.base64 } }] }],
+      config: { responseModalities: ['IMAGE', 'TEXT'], abortSignal: op.senal } as GenerateContentConfig,
+    };
+    let respuesta: GenerateContentResponse;
+    try {
+      respuesta = await this.ai.models.generateContent(peticion);
+    } catch (error) {
+      throw envolverError(error, `Fallo al generar imagen con Gemini (${modelo})`);
+    }
+    const partes = respuesta.candidates?.[0]?.content?.parts ?? [];
+    const imagen = partes.find((p) => p.inlineData?.data);
+    const uso = respuesta.usageMetadata;
+    const tokens = { tokensEntrada: uso?.promptTokenCount ?? 0, tokensSalida: (uso?.candidatesTokenCount ?? 0) + (uso?.thoughtsTokenCount ?? 0) };
+    if (!imagen?.inlineData?.data) {
+      const motivo = respuesta.promptFeedback?.blockReason ?? respuesta.candidates?.[0]?.finishReason ?? 'sin imagen en la respuesta';
+      throw new ErrorProveedor(`Gemini (${modelo}) no devolvió imagen: ${String(motivo)}`, 'gemini', false);
+    }
+    return { mime: imagen.inlineData.mimeType ?? 'image/png', base64: imagen.inlineData.data, modelo, ...tokens };
+  }
+}
+
+export interface OpcionesImagen {
+  instruccion: string;
+  imagen: { mime: string; base64: string };
+  senal?: AbortSignal;
+}
+
+export interface ImagenGenerada {
+  mime: string;
+  base64: string;
+  modelo: string;
+  tokensEntrada: number;
+  tokensSalida: number;
 }
 
 // ------------------------------------------------------------------ acumulación de respuestas (normal o en flujo)

@@ -27,3 +27,6 @@ ui-debug.log
 # sistema
 .DS_Store
 Thumbs.db
+
+# Modelo de recorte de fotos (176 MB): se descarga con npm run modelo:recorte
+modelos/

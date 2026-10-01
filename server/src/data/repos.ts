@@ -316,13 +316,22 @@ export async function resumenConsumoMes(mes: string): Promise<RegistroUso[]> {
   return snap.docs.map((d) => d.data() as RegistroUso);
 }
 
-export async function mensajesHoy(uid: string): Promise<number> {
+/** Contador del día (mensajes, retoques…) en users/{uid}/contadores/{fecha}. */
+export async function contarHoy(uid: string, campo: 'mensajes' | 'retoques'): Promise<number> {
   const doc = await usuario(uid).collection('contadores').doc(fechaLocal()).get();
-  return (doc.data()?.mensajes as number | undefined) ?? 0;
+  return (doc.data()?.[campo] as number | undefined) ?? 0;
+}
+
+export async function sumarHoy(uid: string, campo: 'mensajes' | 'retoques'): Promise<number> {
+  const ref = usuario(uid).collection('contadores').doc(fechaLocal());
+  await ref.set({ [campo]: FieldValue.increment(1) }, { merge: true });
+  return contarHoy(uid, campo);
+}
+
+export async function mensajesHoy(uid: string): Promise<number> {
+  return contarHoy(uid, 'mensajes');
 }
 
 export async function sumarMensajeHoy(uid: string): Promise<number> {
-  const ref = usuario(uid).collection('contadores').doc(fechaLocal());
-  await ref.set({ mensajes: FieldValue.increment(1) }, { merge: true });
-  return mensajesHoy(uid);
+  return sumarHoy(uid, 'mensajes');
 }

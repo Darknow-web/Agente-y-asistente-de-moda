@@ -22,7 +22,8 @@ import {
   ultimoUsoPorPrenda,
 } from '../data/repos.js';
 import { borrarFotoPrenda, subirFotoPrenda } from '../data/storage.js';
-import { asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
+import { pulirFotoDePrenda, quedaCupoDeRetoque, restaurarFotoOriginal } from '../imagenes/pulir.js';
+import { ErrorHttp, asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
 import { construirContexto } from '../memory/construir.js';
 import { calcularResumenArmario } from '../data/resumen-armario.js';
 import { catalogarFoto } from '../agents/guardarropa/index.js';
@@ -141,6 +142,34 @@ rutasArmario.post(
       }
     }
     res.status(201).json(creada);
+  }),
+);
+
+// Pulido automático tras subir: recorte gratuito; alisado con IA solo si vino arrugada y queda cupo.
+rutasArmario.post(
+  '/prendas/:id/foto/pulir',
+  asincrono(async (req, res) => {
+    const r = await pulirFotoDePrenda(req.usuario!.uid, String(req.params.id));
+    res.json(r.prenda);
+  }),
+);
+
+// Botón "Mejorar foto": alisado con IA (descuenta del cupo diario) + recorte.
+rutasArmario.post(
+  '/prendas/:id/foto/mejorar',
+  asincrono(async (req, res) => {
+    const uid = req.usuario!.uid;
+    if (!(await quedaCupoDeRetoque(uid))) throw new ErrorHttp(429, 'Llegaste al límite de fotos mejoradas con IA por hoy. Mañana puedes seguir.');
+    const r = await pulirFotoDePrenda(uid, String(req.params.id), { forzarAlisado: true });
+    if (r.resumen === 'sin-cambios') throw new ErrorHttp(502, 'No pudimos mejorar esta foto. Prueba con otra más iluminada, con la prenda sola sobre un fondo liso.');
+    res.json(r.prenda);
+  }),
+);
+
+rutasArmario.post(
+  '/prendas/:id/foto/original',
+  asincrono(async (req, res) => {
+    res.json(await restaurarFotoOriginal(req.usuario!.uid, String(req.params.id)));
   }),
 );
 

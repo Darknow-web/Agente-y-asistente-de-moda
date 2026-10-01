@@ -25,6 +25,7 @@ uso, sube en proporción. No hay mensualidad fija: solo se paga lo que se usa.
 | Gemini Pro | $1.25 | $10.00 | Plan semanal completo, análisis de compras |
 | Claude Sonnet 5.5 | $2.00 | $10.00 | Opcional (mejor conversación) |
 | Claude Opus 5.5 | $4.00 | $20.00 | Opcional (máxima calidad) |
+| Gemini Flash Image | $0.30 | $30.00 (≈ $0.04 por imagen) | Alisado de arrugas (solo fotos arrugadas o botón "Mejorar foto"); el recorte de fondo es gratis, corre en nuestro servidor |
 
 Los nombres exactos de cada nivel (por ejemplo, qué versión de Flash) están en `server/src/config/modelos.json`.
 
@@ -66,3 +67,14 @@ resumen de uso y ajusta límites o modelos. Nada se apaga solo: la alerta avisa,
   poco, baja el costo bastante).
 - Baja `mensajesPorUsuarioPorDia` a 30.
 - Apaga Calidad para el chat (mantén `revisa` solo con `plan-semanal` y `lista-compras`).
+
+## Fotos del armario
+
+- **Recorte de fondo y luz**: $0. Lo hace un modelo abierto (U2Net) dentro del propio Cloud Run, un segundo por
+  foto. Cuesta solo los segundos de CPU del servicio.
+- **Alisado de arrugas**: unos **$0.04 por foto** (Gemini de imagen) más una verificación de fidelidad con
+  Guardarropa (~$0.003). Solo en fotos marcadas como arrugadas o a pedido, con tope de 10 por usuario y día.
+  Un armario de 40 prendas con una de cada tres arrugada: unos **$0.55 una sola vez**.
+- **Memoria**: el servicio necesita 2 GiB. En reposo Cloud Run no cobra; en uso, la diferencia frente a 1 GiB es
+  de centavos al mes.
+

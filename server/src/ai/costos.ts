@@ -20,6 +20,8 @@ export const TABLA_PRECIOS: Record<string, PrecioModelo> = {
   'gemini-2.5-flash-lite': { entrada: 0.1, salida: 0.4 },
   'gemini-2.5-flash': { entrada: 0.3, salida: 2.5 },
   'gemini-2.5-pro': { entrada: 1.25, salida: 10.0 },
+  // Generación de imagen (una imagen de salida ≈ 1290 tokens ≈ 4 centavos)
+  'gemini-2.5-flash-image': { entrada: 0.3, salida: 30.0 },
   // Claude (Anthropic)
   'claude-haiku-4-5': { entrada: 1.0, salida: 5.0 },
   'claude-sonnet-5-5': { entrada: 2.0, salida: 10.0 },
@@ -38,6 +40,7 @@ export function precioDeModelo(proveedor: Proveedor, modelo: string): PrecioMode
   const m = modelo.toLowerCase();
   if (proveedor === 'gemini' || m.startsWith('gemini')) {
     // Modelos sin fila propia (p. ej. la familia 3.x) se aproximan por nivel con los precios de 2.5.
+    if (m.includes('image')) return TABLA_PRECIOS['gemini-2.5-flash-image'];
     if (m.includes('flash-lite')) return TABLA_PRECIOS['gemini-2.5-flash-lite'];
     if (m.includes('flash')) return TABLA_PRECIOS['gemini-2.5-flash'];
     if (m.includes('pro')) return TABLA_PRECIOS['gemini-2.5-pro'];

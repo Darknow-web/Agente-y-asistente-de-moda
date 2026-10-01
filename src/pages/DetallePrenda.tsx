@@ -137,6 +137,37 @@ export function DetallePrenda() {
         <div className="grid gap-6 px-[var(--margen)] pt-4 pb-16 lg:grid-cols-12 lg:gap-x-6 lg:px-16 lg:pt-8">
           <div className="lg:col-span-5">
             <FotoPrenda prenda={prenda} className="aspect-[4/5]" sizes="(min-width: 1024px) 40vw, 100vw" />
+            {prenda.fotoUrl ? (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--texto-2)]">
+                <span>
+                  {prenda.fotoRetoque === 'alisado'
+                    ? 'Fondo recortado y arrugas alisadas.'
+                    : prenda.fotoRetoque === 'recorte'
+                      ? 'Fondo recortado y luz nivelada.'
+                      : 'Foto tal como se subió.'}
+                </span>
+                <span className="flex gap-4">
+                  <button
+                    type="button"
+                    className="min-h-11 border-b border-[var(--texto)] text-[var(--texto)] disabled:opacity-50"
+                    disabled={ocupado !== null}
+                    onClick={() => void accion('mejorar', () => api.mejorarFoto(prenda.id), 'Foto mejorada: fondo recortado y arrugas alisadas.')}
+                  >
+                    {ocupado === 'mejorar' ? 'Mejorando, medio minuto' : 'Mejorar foto'}
+                  </button>
+                  {prenda.fotoOriginalUrl ? (
+                    <button
+                      type="button"
+                      className="min-h-11 border-b border-[var(--linea)] disabled:opacity-50"
+                      disabled={ocupado !== null}
+                      onClick={() => void accion('original', () => api.fotoOriginal(prenda.id), 'Volvió la foto original.')}
+                    >
+                      Ver original
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-6 lg:col-span-6 lg:col-start-7">

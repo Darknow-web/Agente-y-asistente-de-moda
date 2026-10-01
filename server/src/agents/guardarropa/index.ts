@@ -26,6 +26,7 @@ const ESQUEMA = {
     usosMaxAntesDeLavar: { type: 'integer' },
     notas: { type: 'string' },
     posibleDuplicadoDe: { type: 'string', description: 'id de una prenda del armario muy parecida, o cadena vacía' },
+    fotoArrugada: { type: 'boolean', description: 'true si la prenda se ve arrugada, sin planchar o amontonada con otras cosas; false si la foto está presentable' },
     preguntas: { type: 'array', items: { type: 'string' } },
   },
   required: ['nombre', 'categoria', 'colores', 'usosMaxAntesDeLavar', 'preguntas'],
@@ -46,6 +47,7 @@ export async function catalogarFoto(ctx: ContextoCliente, foto: Adjunto, pista?:
     pista ? `El cliente dice: "${pista}".` : '',
     'Devuelve solo el JSON con el esquema indicado. Si algo no se ve (tela, marca, talla), pon tu mejor estimación y añade la pregunta concreta en "preguntas" (máximo 3).',
     'Compara con el armario del contexto y, si hay una prenda casi igual, indica su id en "posibleDuplicadoDe".',
+    'Indica en "fotoArrugada" si la prenda se ve arrugada, sin planchar o amontonada con otras cosas (true) o presentable (false).',
   ]
     .filter(Boolean)
     .join('\n');
@@ -77,6 +79,7 @@ export async function catalogarFoto(ctx: ContextoCliente, foto: Adjunto, pista?:
       ocasiones: Array.isArray(json.ocasiones) ? (json.ocasiones as string[]) : [],
       usosMaxAntesDeLavar: Math.max(1, Number(json.usosMaxAntesDeLavar ?? 3)),
       notas: json.notas ? String(json.notas) : undefined,
+      fotoArrugada: json.fotoArrugada === true,
     },
     preguntas,
     costoUsd: r.costoUsd,

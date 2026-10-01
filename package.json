@@ -21,7 +21,8 @@
     "test:watch": "vitest",
     "smoke": "tsx server/scripts/smoke.ts",
     "emuladores": "firebase emulators:start --only auth,firestore,storage",
-    "push:claves": "tsx server/scripts/claves-push.ts"
+    "push:claves": "tsx server/scripts/claves-push.ts",
+    "modelo:recorte": "node server/scripts/descargar-modelo.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
@@ -29,9 +30,11 @@
     "express": "^5.2.1",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
+    "onnxruntime-node": "^1.30.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.9.0",
+    "sharp": "^0.34.5",
     "web-push": "^3.6.7",
     "zod": "^4.1.0"
   },

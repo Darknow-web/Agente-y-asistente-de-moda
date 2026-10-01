@@ -106,11 +106,12 @@ export function NuevaPrenda() {
     await enParalelo(listas, EN_PARALELO, async (item) => {
       actualizarItem(item.id, { estado: 'guardando' });
       try {
-        await api.crearPrenda({
+        const creada = await api.crearPrenda({
           prenda: { ...item.propuesta!, estado: 'limpia', usosDesdeLavado: 0, favorita: false },
           foto: item.adjunto,
         });
         actualizarItem(item.id, { estado: 'guardada' });
+        if (creada.fotoUrl) void api.pulirFoto(creada.id).catch(() => undefined); // recorte en segundo plano
       } catch (e) {
         actualizarItem(item.id, { estado: 'error', error: e instanceof Error ? e.message : 'No se pudo guardar.' });
       }
@@ -155,10 +156,11 @@ export function NuevaPrenda() {
         .map((p, i) => (respuestas[i]?.trim() ? `${p} ${respuestas[i].trim()}` : ''))
         .filter(Boolean);
       const notas = [base.notas, ...notasExtra].filter(Boolean).join('\n') || undefined;
-      await api.crearPrenda({
+      const creada = await api.crearPrenda({
         prenda: { ...base, notas, estado: 'limpia', usosDesdeLavado: 0, favorita: false },
         foto: foto ?? undefined,
       });
+      if (creada.fotoUrl) void api.pulirFoto(creada.id).catch(() => undefined); // recorte en segundo plano
       navegar('/armario', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la prenda.');
@@ -181,7 +183,7 @@ export function NuevaPrenda() {
         >
           <p className="m-0 mt-[10px] text-[14px] leading-[1.45] text-[var(--texto-2)]">
             {fase === 'foto'
-              ? 'Una foto sobre fondo claro, con la prenda extendida o colgada. Guardarropa hace el resto. Si eliges varias de la galería, se catalogan todas a la vez.'
+              ? 'Una prenda por foto, estirada o colgada, sobre fondo liso y con luz de día. Guardarropa la cataloga, quita el fondo y nivela la luz. Si eliges varias de la galería, se catalogan todas a la vez.'
               : fase === 'catalogando'
                 ? 'Guardarropa está mirando la foto.'
                 : fase === 'lote'

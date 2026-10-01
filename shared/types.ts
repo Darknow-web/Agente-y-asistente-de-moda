@@ -75,6 +75,8 @@ export interface FormaDeUso {
   faltaria?: string;
 }
 
+export type RetoqueFoto = 'recorte' | 'alisado';
+
 export interface Prenda {
   id: string;
   nombre: string;
@@ -92,6 +94,12 @@ export interface Prenda {
   usosMaxAntesDeLavar: number;
   fotoUrl?: string;
   fotoMiniUrl?: string;
+  /** Foto tal como la subió el cliente, cuando `fotoUrl` es la versión pulida. */
+  fotoOriginalUrl?: string;
+  /** Qué se le hizo a la foto: 'recorte' (fondo quitado y luz nivelada) o 'alisado' (además, arrugas suavizadas con IA). */
+  fotoRetoque?: RetoqueFoto;
+  /** Guardarropa vio la prenda arrugada o con fondo sucio al catalogar: candidata al alisado. */
+  fotoArrugada?: boolean;
   notas?: string;
   favorita?: boolean;
   compradaEn?: string;

@@ -113,7 +113,8 @@ AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
 
 1. [console.cloud.google.com/run](https://console.cloud.google.com/run) › **Crear servicio** ›
    "Implementar continuamente desde un repositorio" › conecta GitHub y elige este repositorio y la rama.
-2. Tipo de compilación: **Dockerfile** (está en la raíz). Puerto 8080.
+2. Tipo de compilación: **Dockerfile** (está en la raíz). Puerto 8080. **Memoria: 2 GiB** (el recorte de fotos
+   carga un modelo de 176 MB y trabaja en memoria; con 1 GiB el servicio se reinicia a mitad de foto).
 3. Región: `southamerica-west1` (Santiago) o `us-central1`. Permitir invocaciones no autenticadas: **sí**
    (la app tiene su propio acceso con Google).
 4. **Variables y secretos**: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `ADMIN_EMAILS`, `JOBS_SECRET`,
@@ -124,6 +125,24 @@ AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
 6. Crear. Cada vez que se suba un cambio a la rama, Cloud Run vuelve a publicar solo. Los Pasos 4 a 7 del
    Camino A aplican igual (dominio autorizado, invitados, notificaciones, tareas programadas).
 
+## Fotos: recorte de fondo y alisado
+
+- **Recorte de fondo y luz nivelada**: gratis y automático. Al guardar una prenda, el servidor quita el fondo con
+  un modelo abierto (U2Net, dentro de la imagen de Docker) y centra la prenda sobre el lino en 4:5. Si el modelo
+  no detecta la prenda (foto sin márgenes, prenda amontonada), la foto se queda como se subió. El original
+  nunca se borra: desde la prenda, "Ver original" lo restaura.
+- **Alisado de arrugas**: usa el modelo de imagen de Gemini (`modelos.json › imagen`), unos 4 centavos por foto.
+  Solo se aplica cuando Guardarropa marcó la foto como arrugada o cuando el cliente pulsa **Mejorar foto**, y
+  hasta `retoquesPorUsuarioPorDia` veces al día (limites.json, 10 por defecto). Después, Guardarropa compara
+  original y resultado y descarta el retoque si la prenda cambió.
+- **Memoria del servicio**: 2 GiB. En AI Studio el servicio de Cloud Run se crea con la memoria por defecto;
+  si las fotos no se recortan y el registro dice "memory limit exceeded", entra en
+  [console.cloud.google.com/run](https://console.cloud.google.com/run) › el servicio › **Editar e implementar
+  nueva revisión** › Memoria **2 GiB** › Implementar.
+- **Modelo ausente**: el Dockerfile lo descarga al construir (`server/scripts/descargar-modelo.mjs`). Si la
+  construcción no tuvo red, el registro dice "no está el modelo de recorte" y las fotos se guardan sin recortar;
+  basta volver a publicar.
+
 ## Si algo falla
 
 - **"Falta configurar la llave del motor"**: revisa la llave de Gemini (en AI Studio, el selector de API
@@ -133,6 +152,8 @@ AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
 - **"Tu correo aún no está en la lista de invitados"**: pon tu correo en `ADMIN_EMAILS` o pide que te
   agreguen en Invitados.
 - **Firestore "sin-configurar" o "error"**: sigue VINCULAR-FIRESTORE.md, sección 5.
+- **Las fotos no se recortan**: revisa la memoria del servicio (2 GiB) y que el registro diga "modelo de recorte
+  cargado" al arrancar. Ver la sección *Fotos* más arriba.
 - **"Firebase no reconoce esta dirección"**: añade el dominio que indica el aviso en Authorized domains.
 - **La conversación no aparece al volver** o **una prenda no se guarda**: Diagnóstico › Firestore debe
   estar en "ok"; si está en "error", la cuenta de servicio no tiene permisos (Camino B, punto 5).

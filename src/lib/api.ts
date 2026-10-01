@@ -80,13 +80,14 @@ async function leerError(res: Response): Promise<never> {
   throw new ErrorHttp(mensaje, res.status, detalle);
 }
 
-async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown, extra: { keepalive?: boolean } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(ruta, {
       method: metodo,
       headers: await cabeceras(cuerpo !== undefined),
       body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+      keepalive: extra.keepalive,
     });
   } catch {
     throw new ErrorHttp('No hay conexión con el servidor.', 0);
@@ -99,7 +100,7 @@ async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown): Prom
 }
 
 export const get = <T>(ruta: string) => peticion<T>('GET', ruta);
-export const post = <T>(ruta: string, cuerpo?: unknown) => peticion<T>('POST', ruta, cuerpo ?? {});
+export const post = <T>(ruta: string, cuerpo?: unknown, extra?: { keepalive?: boolean }) => peticion<T>('POST', ruta, cuerpo ?? {}, extra);
 export const patch = <T>(ruta: string, cuerpo: unknown) => peticion<T>('PATCH', ruta, cuerpo);
 export const put = <T>(ruta: string, cuerpo: unknown) => peticion<T>('PUT', ruta, cuerpo);
 export const del = <T>(ruta: string) => peticion<T>('DELETE', ruta);
@@ -119,6 +120,10 @@ export const api = {
   registrarUso: (id: string, contexto?: string, ajuste?: ReqRegistrarUso['ajuste']) =>
     post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/uso`, { contexto: contexto || undefined, ajuste } satisfies ReqRegistrarUso),
   marcarLavada: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/lavada`),
+  /** Pulido en segundo plano tras subir (recorte gratuito; alisado solo si vino arrugada). `keepalive`: sigue aunque se cambie de pantalla. */
+  pulirFoto: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/pulir`, undefined, { keepalive: true }),
+  mejorarFoto: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/mejorar`),
+  fotoOriginal: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/original`),
   formasDeUso: (id: string, regenerar = false) =>
     post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/formas${regenerar ? '?regenerar=1' : ''}`),
   resumenArmario: () => get<RespResumenArmario>('/api/armario/resumen'),

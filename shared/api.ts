@@ -70,6 +70,9 @@ export interface ReqCrearPrenda {
   prenda: Omit<Prenda, 'id' | 'creadaEn' | 'actualizadaEn'>;
   foto?: Adjunto;
 }
+// POST /api/prendas/:id/foto/pulir   → Prenda  (recorte gratuito; alisado con IA solo si la foto vino arrugada y queda cupo)
+// POST /api/prendas/:id/foto/mejorar → Prenda  (botón "Mejorar foto": alisado con IA + recorte; descuenta del cupo diario)
+// POST /api/prendas/:id/foto/original → Prenda (vuelve a la foto tal como se subió)
 // PATCH /api/prendas/:id  body: Partial<Prenda> → Prenda
 // DELETE /api/prendas/:id → { ok: true }
 // POST /api/prendas/:id/uso  body: { contexto?: string; ajuste?: NivelAjuste } → Prenda (incrementa usos, cambia estado)

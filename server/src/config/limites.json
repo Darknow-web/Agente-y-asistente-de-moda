@@ -22,5 +22,7 @@
     "minCaracteres": 400
   },
   "busquedaWebMaxPorDia": 40,
-  "alertaPresupuestoUsd": 10
+  "alertaPresupuestoUsd": 10,
+  "retoquesPorUsuarioPorDia": 10,
+  "_comentarioRetoques": "Alisados de foto con IA generativa por usuario y día (el recorte de fondo es gratis y no cuenta). Cada alisado cuesta unos 4 centavos."
 }

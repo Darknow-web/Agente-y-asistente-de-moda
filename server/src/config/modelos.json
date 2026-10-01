@@ -13,6 +13,10 @@
     "flash": "claude-sonnet-5-5",
     "pro": "claude-opus-5-5"
   },
+  "imagen": {
+    "_comentario": "Modelo generativo de imagen para alisar arrugas (botón 'Mejorar foto' y fotos marcadas como arrugadas). Se prueban en orden: si el primero no existe en la cuenta, se usa el siguiente. Siempre Gemini.",
+    "modelos": ["gemini-3.1-flash-image", "gemini-2.5-flash-image"]
+  },
   "agentes": {
     "director": {
       "proveedor": "claude",

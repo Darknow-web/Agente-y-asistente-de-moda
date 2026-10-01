@@ -52,7 +52,15 @@ export interface ConfigAgente {
 export interface ConfigModelos {
   gemini: Record<Nivel, string>;
   claude: Record<Nivel, string>;
+  /** Modelos generativos de imagen (Gemini), en orden de preferencia. */
+  imagen?: { modelos: string[] };
   agentes: Record<NombreAgente, ConfigAgente>;
+}
+
+/** Modelos de imagen configurados, en orden. Vacío si no hay sección "imagen". */
+export function modelosImagen(config = cargarConfigModelos()): string[] {
+  const lista = config.imagen?.modelos;
+  return Array.isArray(lista) ? lista.filter((m): m is string => typeof m === 'string' && m.trim() !== '') : [];
 }
 
 /**

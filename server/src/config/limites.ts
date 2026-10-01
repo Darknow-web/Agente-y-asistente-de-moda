@@ -16,6 +16,8 @@ export interface Limites {
   segundosMaxPorRespuesta: number;
   calidad: { revisa: string[]; minCaracteres: number };
   busquedaWebMaxPorDia: number;
+  /** Alisados de foto con IA generativa por usuario y día. El recorte de fondo no cuenta. */
+  retoquesPorUsuarioPorDia: number;
   alertaPresupuestoUsd: number;
 }
 
@@ -31,6 +33,7 @@ const POR_DEFECTO: Limites = {
   segundosMaxPorRespuesta: 170,
   calidad: { revisa: ['plan-semanal', 'plan-diario', 'lista-compras', 'veredicto-probador', 'catalogacion'], minCaracteres: 400 },
   busquedaWebMaxPorDia: 40,
+  retoquesPorUsuarioPorDia: 10,
   alertaPresupuestoUsd: 10,
 };
 

@@ -22,6 +22,9 @@ que se despliega en Cloud Run desde Google AI Studio.
   (suscripciones a notificaciones), `users/{uid}/uso`, `allowlist/{email}`. Los tipos están en `shared/types.ts`.
 - Las consultas evitan índices compuestos a propósito (filtran en memoria lo que haga falta). Los únicos
   índices necesarios están en `firestore.indexes.json`.
+- Las fotos de prendas se pulen en `server/src/imagenes/` (recorte de fondo con U2Net en ONNX, gratis; alisado con
+  Gemini de imagen solo si hace falta, con cupo diario en `limites.json`). El modelo vive en `modelos/` (no
+  versionado; lo descarga el Dockerfile o `npm run modelo:recorte`). Cloud Run necesita 2 GiB de memoria.
 - `public/sw.js` es el service worker: solo notificaciones push, no cachea la app. No añadas caché offline sin
   pedirlo.
 
