@@ -122,6 +122,32 @@ export function esRecuperableClaude(error: unknown): boolean {
   );
 }
 
+const CLAVES_NO_SOPORTADAS = new Set(['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'pattern', 'minItems', 'maxItems', 'uniqueItems']);
+
+/**
+ * Adapta un esquema JSON al subconjunto que acepta el formato estructurado de Claude:
+ * todo objeto lleva `additionalProperties: false` y se quitan las restricciones numéricas y de
+ * longitud (la API las rechaza con 400). Los esquemas de los agentes se escriben una sola vez y
+ * valen para ambos motores.
+ */
+export function esquemaParaClaude(esquema: Record<string, unknown>): Record<string, unknown> {
+  const salida: Record<string, unknown> = {};
+  for (const [clave, valor] of Object.entries(esquema)) {
+    if (CLAVES_NO_SOPORTADAS.has(clave)) continue;
+    if (clave === 'properties' && valor && typeof valor === 'object') {
+      salida.properties = Object.fromEntries(Object.entries(valor as Record<string, unknown>).map(([k, v]) => [k, v && typeof v === 'object' ? esquemaParaClaude(v as Record<string, unknown>) : v]));
+    } else if ((clave === 'items' || clave === 'additionalProperties') && valor && typeof valor === 'object') {
+      salida[clave] = esquemaParaClaude(valor as Record<string, unknown>);
+    } else if ((clave === 'anyOf' || clave === 'allOf' || clave === 'oneOf') && Array.isArray(valor)) {
+      salida[clave] = valor.map((v) => (v && typeof v === 'object' ? esquemaParaClaude(v as Record<string, unknown>) : v));
+    } else {
+      salida[clave] = valor;
+    }
+  }
+  if (salida.type === 'object') salida.additionalProperties = false;
+  return salida;
+}
+
 /** Arma los parámetros de la petición (exportado para poder probarlo sin red). */
 export function armarPeticionClaude(modelo: string, opciones: OpcionesGenerar): Anthropic.MessageStreamParams {
   const tools: Anthropic.ToolUnion[] = opciones.herramientas?.length ? aHerramientasClaude(opciones.herramientas) : [];
@@ -136,7 +162,7 @@ export function armarPeticionClaude(modelo: string, opciones: OpcionesGenerar): 
     messages: aMensajesClaude(opciones.mensajes),
   };
   if (tools.length) peticion.tools = tools;
-  if (opciones.esquemaJson) peticion.output_config = { format: { type: 'json_schema', schema: opciones.esquemaJson } };
+  if (opciones.esquemaJson) peticion.output_config = { format: { type: 'json_schema', schema: esquemaParaClaude(opciones.esquemaJson) } };
   if (usaPensamiento(modelo)) {
     peticion.thinking = { type: 'adaptive' };
   } else if (opciones.temperatura !== undefined) {

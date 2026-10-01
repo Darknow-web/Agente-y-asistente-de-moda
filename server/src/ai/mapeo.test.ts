@@ -10,6 +10,7 @@ import {
   interpretarMensajeClaude,
   motivoFinClaude,
   usaPensamiento,
+  esquemaParaClaude,
 } from './claude.js';
 import { aContenidoGemini, aHerramientasGemini, armarToolsGemini, esRecuperableGemini, motivoFinGemini } from './gemini.js';
 import { ErrorProveedor, type Herramienta, type MensajeModelo } from './provider.js';
@@ -167,7 +168,7 @@ describe('mapeo a Claude', () => {
       { name: 'buscar_prendas', description: 'Busca prendas del guardarropa', input_schema: herramienta.parametros },
       { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
     ]);
-    expect(conPensamiento.output_config).toEqual({ format: { type: 'json_schema', schema: opciones.esquemaJson } });
+    expect(conPensamiento.output_config).toEqual({ format: { type: 'json_schema', schema: { ...opciones.esquemaJson, additionalProperties: false } } });
     expect((conPensamiento as { tool_choice?: unknown }).tool_choice).toBeUndefined();
 
     const haiku = armarPeticionClaude('claude-haiku-4-5', { ...opciones, maxTokensSalida: 500 });
@@ -222,5 +223,29 @@ describe('mapeo a Claude', () => {
     expect(motivoFinClaude('max_tokens')).toBe('longitud');
     expect(motivoFinClaude('refusal')).toBe('rechazo');
     expect(motivoFinClaude(null)).toBe('fin');
+  });
+});
+
+describe('esquemaParaClaude', () => {
+  it('añade additionalProperties: false a cada objeto y quita restricciones no soportadas', () => {
+    const esquema = {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', maxLength: 80 },
+        usos: { type: 'integer', minimum: 1 },
+        formas: { type: 'array', minItems: 1, items: { type: 'object', properties: { titulo: { type: 'string' } }, required: ['titulo'] } },
+      },
+      required: ['nombre'],
+    };
+    expect(esquemaParaClaude(esquema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        nombre: { type: 'string' },
+        usos: { type: 'integer' },
+        formas: { type: 'array', items: { type: 'object', additionalProperties: false, properties: { titulo: { type: 'string' } }, required: ['titulo'] } },
+      },
+      required: ['nombre'],
+    });
   });
 });
