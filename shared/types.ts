@@ -11,6 +11,13 @@ export interface Rutina {
   [dia: string]: string[];
 }
 
+/** Talla que usa la persona en una marca concreta ("en Zara soy M"). Más útil que centímetros. */
+export interface TallaMarca {
+  marca: string;
+  categoria?: CategoriaPrenda;
+  talla: string;
+}
+
 export interface Perfil {
   nombre?: string;
   genero?: Genero;
@@ -20,6 +27,15 @@ export interface Perfil {
   lat?: number;
   lon?: number;
   tallas?: { superior?: string; inferior?: string; calzado?: string; otros?: string };
+  /** Tallas por marca: lo que mejor predice el ajuste. */
+  tallasPorMarca?: TallaMarca[];
+  estaturaCm?: number;
+  /** En palabras de la persona o estimado de una foto: "hombros anchos, cintura marcada". */
+  silueta?: string;
+  /** Bienvenida de cinco preguntas completada (si no, se ofrece al entrar). */
+  bienvenidaCompletada?: boolean;
+  /** Ids de las preguntas del día ya respondidas (o saltadas). */
+  preguntasHechas?: string[];
   /** Palabras del usuario: "minimalista", "colorido", "clásico", etc. */
   estilo?: string[];
   coloresFavoritos?: string[];
@@ -49,6 +65,16 @@ export type EstadoPrenda = 'limpia' | 'usada' | 'para-lavar' | 'en-lavado' | 're
 
 export type Temporada = 'verano' | 'invierno' | 'entretiempo' | 'todo-el-ano';
 
+/** Una manera de ponerse una prenda con lo que hay en el armario. */
+export interface FormaDeUso {
+  titulo: string;
+  /** Prendas del armario que la acompañan (ids reales). */
+  prendaIds: string[];
+  motivo: string;
+  /** Si para que funcione del todo falta una pieza, cuál (una sola). */
+  faltaria?: string;
+}
+
 export interface Prenda {
   id: string;
   nombre: string;
@@ -70,6 +96,13 @@ export interface Prenda {
   favorita?: boolean;
   compradaEn?: string;
   precio?: number;
+  /** Usos acumulados desde que entró al armario (para el costo por uso y la ropa dormida). */
+  usosTotales?: number;
+  /** Fecha ISO del último uso registrado. */
+  ultimoUso?: string;
+  /** "Tres formas de ponértela", calculadas por Estilismo y guardadas. */
+  formasDeUso?: FormaDeUso[];
+  formasDeUsoEn?: string;
   creadaEn: string;
   actualizadaEn: string;
 }
@@ -81,6 +114,20 @@ export interface Uso {
   contexto?: string; // "oficina", "cena"
 }
 
+export type NivelAjuste = 'ajustado' | 'bien' | 'holgado';
+
+/** Memoria de ajuste: cómo le quedó una prenda o una talla de una marca. */
+export interface Ajuste {
+  id: string;
+  prendaId?: string;
+  marca?: string;
+  categoria?: CategoriaPrenda;
+  talla?: string;
+  ajuste: NivelAjuste;
+  nota?: string;
+  fecha: string;
+}
+
 export interface Deseo {
   id: string;
   nombre: string;
@@ -88,6 +135,12 @@ export interface Deseo {
   prioridad: 'alta' | 'media' | 'baja';
   precioObjetivo?: number;
   enlaces?: { titulo: string; url: string; precio?: string; tienda?: string }[];
+  /** Enfriamiento: cuándo Sastra vuelve a preguntar si sigue queriéndolo (7 días por defecto). */
+  recordatorioEn?: string;
+  /** Ya se envió el recordatorio y la respuesta de Estilismo. */
+  recordado?: boolean;
+  /** Con qué prendas del armario lo combinaría (nombres), calculado al recordar. */
+  combinaCon?: string[];
   creadoEn: string;
 }
 
@@ -168,16 +221,45 @@ export const AGENTES: Record<NombreAgente, { titulo: string; departamento: strin
 };
 
 // ------------------------------------------------------------ avisos (autonomía)
-export type TipoAviso = 'look-del-dia' | 'plan-semanal' | 'lavado' | 'compra' | 'sistema';
+export type TipoAviso =
+  | 'look-del-dia'
+  | 'plan-semanal'
+  | 'lavado'
+  | 'compra'
+  | 'estreno'
+  | 'dormida'
+  | 'deseo'
+  | 'diario'
+  | 'sistema';
 
 export interface Aviso {
   id: string;
   tipo: TipoAviso;
   titulo: string;
   cuerpo: string;
+  /** Departamento que lo generó (para el diario). */
+  agente?: NombreAgente;
   datos?: Record<string, unknown>;
   leido: boolean;
   creadoEn: string;
+}
+
+/** Suscripción a notificaciones push de un navegador o móvil (Web Push). */
+export interface SuscripcionPush {
+  id: string;
+  endpoint: string;
+  claves: { p256dh: string; auth: string };
+  dispositivo?: string;
+  creadoEn: string;
+}
+
+/** Pregunta del día: una sola, con opciones, para completar el perfil sin formularios. */
+export interface PreguntaPerfil {
+  id: string;
+  texto: string;
+  /** Opciones de un toque; si está vacío, respuesta libre corta. */
+  opciones: string[];
+  permiteTexto?: boolean;
 }
 
 // ------------------------------------------------------------ uso y costos

@@ -14,11 +14,11 @@ export type Departamento = (typeof DEPARTAMENTOS_DELEGABLES)[number];
 
 const HERRAMIENTAS_POR_DEPARTAMENTO: Record<Departamento, NombreHerramienta[]> = {
   guardarropa: ['listar_prendas', 'crear_prenda', 'editar_prenda', 'registrar_uso', 'marcar_lavada', 'guardar_deseo'],
-  estilismo: ['listar_prendas', 'actualizar_perfil'],
+  estilismo: ['listar_prendas', 'actualizar_perfil', 'registrar_ajuste'],
   planificacion: ['listar_prendas', 'clima', 'actualizar_perfil'],
   cuidado: ['listar_prendas', 'registrar_uso', 'marcar_lavada', 'editar_prenda'],
   compras: ['listar_prendas', 'guardar_deseo', 'actualizar_perfil'],
-  probador: ['listar_prendas', 'guardar_deseo'],
+  probador: ['listar_prendas', 'guardar_deseo', 'registrar_ajuste', 'actualizar_perfil'],
 };
 
 export interface OpcionesDepartamento {

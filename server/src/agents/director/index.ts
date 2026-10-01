@@ -74,7 +74,7 @@ export async function correrDirector(op: OpcionesDirector): Promise<ResultadoDir
     agente: 'director',
     ctx: op.ctx,
     mensajes: op.historial,
-    herramientas: [delegarA, ...herramientas('actualizar_perfil', 'listar_prendas', 'registrar_uso', 'marcar_lavada')],
+    herramientas: [delegarA, ...herramientas('actualizar_perfil', 'listar_prendas', 'registrar_uso', 'marcar_lavada', 'registrar_ajuste')],
     ejecutar,
     maxVueltas: 6,
     onTexto: op.onTexto,

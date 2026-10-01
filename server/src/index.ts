@@ -15,6 +15,7 @@ import { rutasArmario } from './routes/armario.js';
 import { rutasPlanes } from './routes/planes.js';
 import { rutasChat } from './routes/chat.js';
 import { rutasJobs } from './routes/jobs.js';
+import { rutasProbador } from './routes/probador.js';
 import { leerLimites } from './config/limites.js';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api', rutasCuenta);
 app.use('/api', rutasArmario);
 app.use('/api', rutasPlanes);
 app.use('/api', rutasChat);
+app.use('/api', rutasProbador);
 app.use('/api', rutasJobs);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Esa ruta no existe.' }));
 

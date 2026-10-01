@@ -7,6 +7,8 @@
  *   users/{uid}/deseos/{id}
  *   users/{uid}/conversaciones/{id}
  *   users/{uid}/avisos/{id}
+ *   users/{uid}/ajustes/{id}           (memoria de cómo le queda la ropa)
+ *   users/{uid}/push/{id}              (suscripciones a notificaciones)
  *   users/{uid}/uso/{id}               (registro de tokens y costo)
  *   users/{uid}/contadores/{YYYY-MM-DD} (mensajes del día)
  *   allowlist/{email}
@@ -14,14 +16,17 @@
  */
 import { FieldValue } from 'firebase-admin/firestore';
 import type {
+  Ajuste,
   Aviso,
   Conversacion,
   Deseo,
   Mensaje,
+  NivelAjuste,
   Perfil,
   PlanSemanal,
   Prenda,
   RegistroUso,
+  SuscripcionPush,
   Uso,
 } from '@shared/types.js';
 import type { Invitado } from '@shared/api.js';
@@ -123,26 +128,77 @@ export async function eliminarPrenda(uid: string, id: string): Promise<void> {
   await usuario(uid).collection('prendas').doc(id).delete();
 }
 
-export async function registrarUso(uid: string, prendaId: string, contexto?: string): Promise<Prenda | null> {
+export async function registrarUso(uid: string, prendaId: string, contexto?: string, ajuste?: NivelAjuste): Promise<Prenda | null> {
   const prenda = await leerPrenda(uid, prendaId);
   if (!prenda) return null;
   const usos = (prenda.usosDesdeLavado ?? 0) + 1;
   const max = prenda.usosMaxAntesDeLavar ?? 3;
   const estado: Prenda['estado'] = usos >= max ? 'para-lavar' : 'usada';
-  const uso: Uso = { id: nuevoId('u'), prendaId, fecha: ahora(), contexto };
+  const fecha = ahora();
+  const uso: Uso = { id: nuevoId('u'), prendaId, fecha, contexto };
   const lote = db().batch();
   lote.set(usuario(uid).collection('usos').doc(uso.id), uso);
   lote.set(
     usuario(uid).collection('prendas').doc(prendaId),
-    { usosDesdeLavado: usos, estado, actualizadaEn: ahora() },
+    { usosDesdeLavado: usos, estado, usosTotales: (prenda.usosTotales ?? 0) + 1, ultimoUso: fecha, actualizadaEn: fecha },
     { merge: true },
   );
+  if (ajuste) {
+    const registro: Ajuste = { id: nuevoId('aj'), prendaId, marca: prenda.marca, categoria: prenda.categoria, ajuste, fecha };
+    lote.set(usuario(uid).collection('ajustes').doc(registro.id), registro);
+  }
   await lote.commit();
   return leerPrenda(uid, prendaId);
 }
 
 export async function marcarLavada(uid: string, prendaId: string): Promise<Prenda | null> {
   return actualizarPrenda(uid, prendaId, { usosDesdeLavado: 0, estado: 'limpia' });
+}
+
+/** Último uso por prenda, mirando también el historial antiguo (prendas creadas antes de `ultimoUso`). */
+export async function ultimoUsoPorPrenda(uid: string): Promise<Map<string, string>> {
+  const snap = await usuario(uid).collection('usos').orderBy('fecha', 'desc').limit(2000).get();
+  const mapa = new Map<string, string>();
+  for (const d of snap.docs) {
+    const u = d.data() as Uso;
+    if (!mapa.has(u.prendaId)) mapa.set(u.prendaId, u.fecha);
+  }
+  return mapa;
+}
+
+// ---------------------------------------------------------------- ajustes (memoria de calce)
+export async function listarAjustes(uid: string, max = 60): Promise<Ajuste[]> {
+  const snap = await usuario(uid).collection('ajustes').orderBy('fecha', 'desc').limit(max).get();
+  return snap.docs.map((d) => d.data() as Ajuste);
+}
+
+export async function crearAjuste(uid: string, datos: Omit<Ajuste, 'id' | 'fecha'>): Promise<Ajuste> {
+  const ajuste: Ajuste = { ...datos, id: nuevoId('aj'), fecha: ahora() };
+  await usuario(uid).collection('ajustes').doc(ajuste.id).set(ajuste);
+  return ajuste;
+}
+
+// ---------------------------------------------------------------- notificaciones push
+export async function listarSuscripcionesPush(uid: string): Promise<SuscripcionPush[]> {
+  const snap = await usuario(uid).collection('push').get();
+  return snap.docs.map((d) => d.data() as SuscripcionPush);
+}
+
+export async function guardarSuscripcionPush(uid: string, datos: Omit<SuscripcionPush, 'id' | 'creadoEn'>): Promise<SuscripcionPush> {
+  // Una suscripción por endpoint: si ya existe, se conserva.
+  const existentes = await listarSuscripcionesPush(uid);
+  const previa = existentes.find((s) => s.endpoint === datos.endpoint);
+  if (previa) return previa;
+  const s: SuscripcionPush = { ...datos, id: nuevoId('push'), creadoEn: ahora() };
+  await usuario(uid).collection('push').doc(s.id).set(s);
+  return s;
+}
+
+export async function eliminarSuscripcionPush(uid: string, endpoint: string): Promise<void> {
+  const existentes = await listarSuscripcionesPush(uid);
+  const lote = db().batch();
+  for (const s of existentes) if (s.endpoint === endpoint) lote.delete(usuario(uid).collection('push').doc(s.id));
+  await lote.commit();
 }
 
 export async function usosRecientes(uid: string, dias = 14): Promise<Uso[]> {
@@ -167,10 +223,18 @@ export async function listarDeseos(uid: string): Promise<Deseo[]> {
   return snap.docs.map((d) => d.data() as Deseo);
 }
 
+const DIAS_ENFRIAMIENTO = 7;
+
 export async function crearDeseo(uid: string, datos: Omit<Deseo, 'id' | 'creadoEn'>): Promise<Deseo> {
-  const deseo: Deseo = { ...datos, id: nuevoId('d'), creadoEn: ahora() };
+  const creadoEn = ahora();
+  const recordatorioEn = new Date(Date.parse(creadoEn) + DIAS_ENFRIAMIENTO * 86400000).toISOString();
+  const deseo: Deseo = { recordatorioEn, recordado: false, ...datos, id: nuevoId('d'), creadoEn };
   await usuario(uid).collection('deseos').doc(deseo.id).set(deseo);
   return deseo;
+}
+
+export async function actualizarDeseo(uid: string, id: string, cambios: Partial<Deseo>): Promise<void> {
+  await usuario(uid).collection('deseos').doc(id).set({ ...cambios }, { merge: true });
 }
 
 export async function eliminarDeseo(uid: string, id: string): Promise<void> {

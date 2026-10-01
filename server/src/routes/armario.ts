@@ -1,31 +1,108 @@
 /**
- * Armario: prendas, catalogación por foto, usos, lavado, deseos.
+ * Armario: prendas, catalogación por foto, usos, lavado, deseos, resumen (ropa dormida),
+ * "tres formas de ponértela" y memoria de ajuste.
  */
 import { Router as ExpressRouter } from 'express';
 import type { Deseo, Prenda } from '@shared/types.js';
-import type { ReqCatalogar, ReqCrearPrenda, RespCatalogar } from '@shared/api.js';
+import type { PrendaDormida, ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespResumenArmario } from '@shared/api.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
   actualizarPrenda,
+  crearAjuste,
   crearDeseo,
   crearPrenda,
   eliminarDeseo,
   eliminarPrenda,
   leerPrenda,
+  listarAjustes,
   listarDeseos,
   listarPrendas,
   marcarLavada,
   registrarUso,
+  ultimoUsoPorPrenda,
 } from '../data/repos.js';
 import { borrarFotoPrenda, subirFotoPrenda } from '../data/storage.js';
 import { asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
 import { construirContexto } from '../memory/construir.js';
+import { diasDesde } from '../memory/contexto.js';
 import { catalogarFoto } from '../agents/guardarropa/index.js';
+import { formasDeUso } from '../agents/estilismo/index.js';
 import { debeRevisar, revisarConCalidad } from '../agents/calidad/index.js';
+import { ahora } from '../util/ids.js';
 
 export const rutasArmario = ExpressRouter();
 // Solo a las rutas de este módulo (un `use` sin ruta afectaría a todo /api)
-rutasArmario.use(['/prendas', '/deseos'], requiereSesion, requiereInvitado);
+rutasArmario.use(['/prendas', '/deseos', '/armario', '/ajustes'], requiereSesion, requiereInvitado);
+
+/** Días sin uso de una prenda (desde el último uso o, si nunca se usó, desde que entró). */
+export function diasSinUso(p: Prenda, ultimoUso?: string): number {
+  return diasDesde(ultimoUso ?? p.ultimoUso ?? p.creadaEn) ?? 0;
+}
+
+const DIAS_DORMIDA = 60;
+
+/** Qué se usa y qué duerme: base de "ropa dormida", "estreno" y "valor sin uso". */
+export async function resumenArmario(uid: string, prendas: Prenda[], moneda = 'PEN'): Promise<RespResumenArmario> {
+  const ultimos = await ultimoUsoPorPrenda(uid).catch(() => new Map<string, string>());
+  const compacta = (p: Prenda, dias: number): PrendaDormida => ({ id: p.id, nombre: p.nombre, dias, precio: p.precio, fotoUrl: p.fotoMiniUrl ?? p.fotoUrl });
+  const dormidas: PrendaDormida[] = [];
+  const sinEstrenar: PrendaDormida[] = [];
+  let usadas30 = 0;
+  for (const p of prendas) {
+    if (p.estado === 'guardada') continue;
+    const ultimo = ultimos.get(p.id) ?? p.ultimoUso;
+    const usada = Boolean(ultimo) || (p.usosTotales ?? 0) > 0;
+    const dias = diasSinUso(p, ultimo);
+    if (ultimo && dias <= 30) usadas30++;
+    if (!usada && (diasDesde(p.creadaEn) ?? 0) < DIAS_DORMIDA) sinEstrenar.push(compacta(p, diasDesde(p.creadaEn) ?? 0));
+    else if (dias >= DIAS_DORMIDA) dormidas.push(compacta(p, dias));
+  }
+  dormidas.sort((a, b) => b.dias - a.dias);
+  sinEstrenar.sort((a, b) => b.dias - a.dias);
+  const valorSinUso = [...dormidas, ...sinEstrenar].reduce((s, p) => s + (p.precio ?? 0), 0);
+  return { totalPrendas: prendas.length, usadasUltimos30: usadas30, dormidas, sinEstrenar, valorSinUso: Math.round(valorSinUso), moneda };
+}
+
+rutasArmario.get(
+  '/armario/resumen',
+  asincrono(async (req, res) => {
+    const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email, { conClima: false });
+    res.json(await resumenArmario(ctx.uid, ctx.prendas, ctx.perfil.moneda ?? 'PEN'));
+  }),
+);
+
+rutasArmario.post(
+  '/prendas/:id/formas',
+  asincrono(async (req, res) => {
+    const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email, { conClima: false });
+    const prenda = ctx.prendas.find((p) => p.id === String(req.params.id));
+    if (!prenda) throw noEncontrado('Esa prenda no existe.');
+    const vigentes = prenda.formasDeUso?.length && req.query.regenerar !== '1';
+    if (vigentes) return res.json(prenda);
+    if (ctx.prendas.length < 3) throw peticionInvalida('Con menos de tres prendas en el armario no hay con qué combinarla todavía.');
+    const { formas } = await formasDeUso(ctx, prenda);
+    if (!formas.length) throw new Error('Estilismo no pudo proponer formas de uso ahora. Inténtalo de nuevo en un momento.');
+    const actualizada = await actualizarPrenda(ctx.uid, prenda.id, { formasDeUso: formas, formasDeUsoEn: ahora() });
+    res.json(actualizada ?? { ...prenda, formasDeUso: formas });
+  }),
+);
+
+rutasArmario.get(
+  '/ajustes',
+  asincrono(async (req, res) => {
+    res.json(await listarAjustes(req.usuario!.uid));
+  }),
+);
+
+rutasArmario.post(
+  '/ajustes',
+  asincrono(async (req, res) => {
+    const a = (req.body ?? {}) as ReqAjuste;
+    if (!['ajustado', 'bien', 'holgado'].includes(a.ajuste)) throw peticionInvalida('Dime si te quedó ajustado, bien u holgado.');
+    if (!a.prendaId && !a.marca) throw peticionInvalida('Indica la prenda o la marca.');
+    res.status(201).json(await crearAjuste(req.usuario!.uid, { prendaId: a.prendaId, marca: a.marca, categoria: a.categoria, talla: a.talla, ajuste: a.ajuste, nota: a.nota }));
+  }),
+);
 
 rutasArmario.get(
   '/prendas',
@@ -113,7 +190,9 @@ rutasArmario.delete(
 rutasArmario.post(
   '/prendas/:id/uso',
   asincrono(async (req, res) => {
-    const p = await registrarUso(req.usuario!.uid, String(req.params.id), (req.body?.contexto as string | undefined) ?? undefined);
+    const { contexto, ajuste } = (req.body ?? {}) as ReqRegistrarUso;
+    const nivel = ajuste && ['ajustado', 'bien', 'holgado'].includes(ajuste) ? ajuste : undefined;
+    const p = await registrarUso(req.usuario!.uid, String(req.params.id), contexto || undefined, nivel);
     if (!p) throw noEncontrado('Esa prenda no existe.');
     res.json(p);
   }),

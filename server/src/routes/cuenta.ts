@@ -3,10 +3,14 @@
  */
 import { Router as ExpressRouter } from 'express';
 import type { Perfil } from '@shared/types.js';
-import type { RespResumenUso, RespYo } from '@shared/api.js';
+import type { ReqRespuestaPregunta, RespClavePush, RespPreguntaDelDia, RespResumenUso, RespYo } from '@shared/api.js';
+import { aplicarRespuesta, proximaPregunta } from '../config/preguntas.js';
+import { clavePublicaPush } from '../util/push.js';
 import { requiereAdmin, requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
   agregarInvitado,
+  eliminarSuscripcionPush,
+  guardarSuscripcionPush,
   guardarPerfil,
   leerPerfil,
   listarAvisos,
@@ -53,6 +57,64 @@ rutasCuenta.put(
     const cambios = (req.body ?? {}) as Partial<Perfil>;
     delete (cambios as Record<string, unknown>).creadoEn;
     res.json(await guardarPerfil(req.usuario!.uid, cambios));
+  }),
+);
+
+// ---------------------------------------------------------------- pregunta del día
+rutasCuenta.get(
+  '/pregunta-del-dia',
+  requiereSesion,
+  requiereInvitado,
+  asincrono(async (req, res) => {
+    const perfil = await leerPerfil(req.usuario!.uid);
+    const respuesta: RespPreguntaDelDia = proximaPregunta(perfil);
+    res.json(respuesta);
+  }),
+);
+
+rutasCuenta.post(
+  '/pregunta-del-dia',
+  requiereSesion,
+  requiereInvitado,
+  asincrono(async (req, res) => {
+    const { id, respuesta, saltar } = (req.body ?? {}) as ReqRespuestaPregunta;
+    const perfil = await leerPerfil(req.usuario!.uid);
+    const cambios = aplicarRespuesta(perfil, String(id ?? ''), respuesta, Boolean(saltar));
+    if (!cambios) throw peticionInvalida('Esa pregunta no existe.');
+    res.json(await guardarPerfil(req.usuario!.uid, cambios));
+  }),
+);
+
+// ---------------------------------------------------------------- notificaciones push
+rutasCuenta.get(
+  '/push/clave',
+  requiereSesion,
+  asincrono(async (_req, res) => {
+    const respuesta: RespClavePush = { clavePublica: clavePublicaPush() };
+    res.json(respuesta);
+  }),
+);
+
+rutasCuenta.post(
+  '/push/suscripcion',
+  requiereSesion,
+  requiereInvitado,
+  asincrono(async (req, res) => {
+    const s = (req.body ?? {}) as { endpoint?: string; keys?: { p256dh?: string; auth?: string }; dispositivo?: string };
+    if (!s.endpoint || !s.keys?.p256dh || !s.keys?.auth) throw peticionInvalida('La suscripción no es válida.');
+    await guardarSuscripcionPush(req.usuario!.uid, { endpoint: s.endpoint, claves: { p256dh: s.keys.p256dh, auth: s.keys.auth }, dispositivo: s.dispositivo?.slice(0, 120) });
+    res.status(201).json({ ok: true });
+  }),
+);
+
+rutasCuenta.delete(
+  '/push/suscripcion',
+  requiereSesion,
+  requiereInvitado,
+  asincrono(async (req, res) => {
+    const endpoint = String(req.body?.endpoint ?? '');
+    if (endpoint) await eliminarSuscripcionPush(req.usuario!.uid, endpoint);
+    res.json({ ok: true });
   }),
 );
 

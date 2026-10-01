@@ -4,10 +4,11 @@
  */
 import type { Herramienta } from '../ai/provider.js';
 import type { ContextoCliente } from '../memory/contexto.js';
-import type { CategoriaPrenda, Deseo, Perfil, Prenda, Temporada } from '@shared/types.js';
+import type { CategoriaPrenda, Deseo, NivelAjuste, Perfil, Prenda, TallaMarca, Temporada } from '@shared/types.js';
 import {
   actualizarPrenda,
   agregarAprendizajes,
+  crearAjuste,
   crearDeseo,
   crearPrenda,
   guardarPerfil,
@@ -82,6 +83,23 @@ export const H = {
       required: ['id'],
     },
   },
+  registrar_ajuste: {
+    nombre: 'registrar_ajuste',
+    descripcion:
+      'Guarda cómo le quedó una prenda o una talla ("ajustado", "bien" u "holgado"). Úsala cuando el cliente cuente que algo le queda grande, chico, justo, etc., o en el probador. Sirve para predecir el calce la próxima vez.',
+    parametros: {
+      type: 'object',
+      properties: {
+        prendaId: { type: 'string', description: 'Id de la prenda del armario, si es una suya' },
+        marca: { type: 'string' },
+        categoria: { type: 'string', enum: CATEGORIAS },
+        talla: { type: 'string' },
+        ajuste: { type: 'string', enum: ['ajustado', 'bien', 'holgado'] },
+        nota: { type: 'string', description: 'Dónde exactamente: hombros, cintura, largo…' },
+      },
+      required: ['ajuste'],
+    },
+  },
   marcar_lavada: {
     nombre: 'marcar_lavada',
     descripcion: 'Marca una prenda como recién lavada (usos a cero, estado limpia).',
@@ -120,6 +138,13 @@ export const H = {
         ciudad: { type: 'string' },
         pais: { type: 'string' },
         tallas: { type: 'object', properties: { superior: { type: 'string' }, inferior: { type: 'string' }, calzado: { type: 'string' }, otros: { type: 'string' } } },
+        tallasPorMarca: {
+          type: 'array',
+          description: 'Tallas que usa en marcas concretas ("en Zara soy M"). Se añaden a las que ya hay.',
+          items: { type: 'object', properties: { marca: { type: 'string' }, categoria: { type: 'string', enum: CATEGORIAS }, talla: { type: 'string' } }, required: ['marca', 'talla'] },
+        },
+        estaturaCm: { type: 'number' },
+        silueta: { type: 'string', description: 'Cómo describe su cuerpo o lo que se ve en una foto: "hombros anchos, cintura marcada"' },
         estilo: { type: 'array', items: { type: 'string' } },
         coloresFavoritos: { type: 'array', items: { type: 'string' } },
         coloresEvitar: { type: 'array', items: { type: 'string' } },
@@ -184,6 +209,19 @@ export function ejecutorArmario(ctx: ContextoCliente) {
         ctx.prendas = ctx.prendas.map((x) => (x.id === p.id ? p : x));
         return compactar(p);
       }
+      case 'registrar_ajuste': {
+        const prenda = a.prendaId ? ctx.prendas.find((p) => p.id === String(a.prendaId)) : undefined;
+        const ajuste = await crearAjuste(ctx.uid, {
+          prendaId: prenda?.id,
+          marca: (a.marca as string | undefined) ?? prenda?.marca,
+          categoria: ((a.categoria as CategoriaPrenda | undefined) ?? prenda?.categoria) || undefined,
+          talla: a.talla ? String(a.talla) : undefined,
+          ajuste: (a.ajuste as NivelAjuste) ?? 'bien',
+          nota: a.nota ? String(a.nota) : undefined,
+        });
+        ctx.ajustes = [ajuste, ...(ctx.ajustes ?? [])];
+        return { ok: true, ajuste };
+      }
       case 'marcar_lavada': {
         const p = await marcarLavada(ctx.uid, String(a.id));
         if (!p) return { error: 'No existe esa prenda.' };
@@ -201,8 +239,16 @@ export function ejecutorArmario(ctx: ContextoCliente) {
         return d;
       }
       case 'actualizar_perfil': {
-        const { aprendizajes, ...resto } = a as Partial<Perfil> & { aprendizajes?: string[] };
-        const limpio = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+        const { aprendizajes, tallasPorMarca, ...resto } = a as Partial<Perfil> & { aprendizajes?: string[]; tallasPorMarca?: TallaMarca[] };
+        const limpio: Record<string, unknown> = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+        if (Array.isArray(tallasPorMarca) && tallasPorMarca.length) {
+          const previas = ctx.perfil.tallasPorMarca ?? [];
+          const nuevas = tallasPorMarca.filter((t) => t?.marca && t?.talla);
+          const clave = (t: TallaMarca) => `${t.marca.toLowerCase()}|${t.categoria ?? ''}`;
+          const mapa = new Map(previas.map((t) => [clave(t), t]));
+          for (const t of nuevas) mapa.set(clave(t), { marca: t.marca, categoria: t.categoria, talla: t.talla });
+          limpio.tallasPorMarca = [...mapa.values()];
+        }
         if (Object.keys(limpio).length) ctx.perfil = await guardarPerfil(ctx.uid, limpio as Partial<Perfil>);
         if (aprendizajes?.length) {
           await agregarAprendizajes(ctx.uid, aprendizajes);

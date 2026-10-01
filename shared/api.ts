@@ -6,13 +6,16 @@
  */
 import type {
   Adjunto,
+  Ajuste,
   Aviso,
   Conversacion,
   NombreAgente,
+  NivelAjuste,
   Perfil,
   PlanDia,
   PlanSemanal,
   Prenda,
+  PreguntaPerfil,
   RegistroUso,
   RespuestaSalud,
 } from './types.js';
@@ -69,8 +72,80 @@ export interface ReqCrearPrenda {
 }
 // PATCH /api/prendas/:id  body: Partial<Prenda> → Prenda
 // DELETE /api/prendas/:id → { ok: true }
-// POST /api/prendas/:id/uso  body: { contexto?: string } → Prenda (incrementa usos, cambia estado)
+// POST /api/prendas/:id/uso  body: { contexto?: string; ajuste?: NivelAjuste } → Prenda (incrementa usos, cambia estado)
+export interface ReqRegistrarUso {
+  contexto?: string;
+  /** Cómo le quedó hoy (alimenta la memoria de ajuste). */
+  ajuste?: NivelAjuste;
+}
 // POST /api/prendas/:id/lavada → Prenda (usos a 0, estado limpia)
+// POST /api/prendas/:id/formas?regenerar=1 → Prenda con formasDeUso ("tres formas de ponértela", Estilismo)
+
+// GET /api/armario/resumen → qué se usa y qué duerme
+export interface PrendaDormida {
+  id: string;
+  nombre: string;
+  /** Días sin uso (o desde que entró, si nunca se usó). */
+  dias: number;
+  precio?: number;
+  fotoUrl?: string;
+}
+export interface RespResumenArmario {
+  totalPrendas: number;
+  usadasUltimos30: number;
+  /** Prendas con más de 60 días sin uso. */
+  dormidas: PrendaDormida[];
+  /** Prendas nuevas (menos de 30 días) sin ningún uso. */
+  sinEstrenar: PrendaDormida[];
+  /** Suma de precios de las prendas dormidas y sin estrenar que tienen precio. */
+  valorSinUso: number;
+  moneda: string;
+}
+
+// ---------------------------------------------------------------- ajustes (memoria de cómo queda la ropa)
+// GET /api/ajustes → Ajuste[]   POST /api/ajustes body: Omit<Ajuste,'id'|'fecha'> → Ajuste
+export type ReqAjuste = Omit<Ajuste, 'id' | 'fecha'>;
+
+// ---------------------------------------------------------------- pregunta del día
+// GET /api/pregunta-del-dia → { pregunta: PreguntaPerfil | null }
+// POST /api/pregunta-del-dia body: { id: string; respuesta?: string; saltar?: boolean } → Perfil
+export interface RespPreguntaDelDia {
+  pregunta: PreguntaPerfil | null;
+  /** Cuántas quedan por responder. */
+  pendientes: number;
+}
+export interface ReqRespuestaPregunta {
+  id: string;
+  respuesta?: string;
+  saltar?: boolean;
+}
+
+// ---------------------------------------------------------------- probador: índice de compra
+// POST /api/probador/indice body: { foto: Adjunto; pista?: string } → RespIndiceCompra
+export interface ReqIndiceCompra {
+  foto: Adjunto;
+  pista?: string;
+}
+export interface RespIndiceCompra {
+  /** 1 a 10: probabilidad de que la use de verdad. */
+  indice: number;
+  veredicto: 'comprala' | 'pruebate-otra-talla' | 'dejala' | 'pensarlo';
+  resumen: string;
+  /** Prendas del armario con las que combina (ids reales). */
+  combinaCon: string[];
+  /** Prendas del armario que ya cumplen ese papel (ids reales). */
+  similares: string[];
+  /** Qué vacío del armario llenaría, si alguno. */
+  vacioQueLlena?: string;
+}
+
+// ---------------------------------------------------------------- notificaciones push (Web Push)
+// GET /api/push/clave → { clavePublica: string | null }
+// POST /api/push/suscripcion body: PushSubscriptionJSON + { dispositivo?: string } → { ok: true }
+// DELETE /api/push/suscripcion body: { endpoint } → { ok: true }
+export interface RespClavePush {
+  clavePublica: string | null;
+}
 
 // ---------------------------------------------------------------- planes
 // GET /api/planes/hoy → { dia: PlanDia | null, prendas: Prenda[] }
@@ -120,6 +195,7 @@ export interface RespResumenUso {
 
 // ---------------------------------------------------------------- tareas programadas (cabecera x-jobs-secret)
 // POST /api/jobs/look-del-dia · POST /api/jobs/plan-semanal · POST /api/jobs/recordatorios-lavado
+// POST /api/jobs/diario (estrenos pendientes, ropa dormida, deseos en enfriamiento)
 export interface RespJob {
   ok: boolean;
   usuariosProcesados: number;
