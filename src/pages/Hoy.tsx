@@ -1,5 +1,5 @@
-/** Hoy: el look del día con la primera prenda en grande. */
-import { useState } from 'react';
+/** Hoy: el look del día, prenda por prenda en grande con flechas y deslizando. */
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Prenda } from '@shared/types';
 import { api } from '@/lib/api';
@@ -7,7 +7,7 @@ import { useCarga } from '@/lib/useCarga';
 import { useSesion } from '@/lib/sesion';
 import { fechaLarga } from '@/lib/fechas';
 import { Isotipo } from '@/components/Marca';
-import { IconoCampana } from '@/components/Iconos';
+import { IconoCampana, IconoVolver } from '@/components/Iconos';
 import { Cargando } from '@/components/Cargando';
 import { EstadoVacio } from '@/components/EstadoVacio';
 import { Aviso } from '@/components/Aviso';
@@ -29,7 +29,20 @@ export function Hoy() {
         .map((id) => datos?.prendas.find((p) => p.id === id))
         .filter((p): p is Prenda => Boolean(p))
     : [];
-  const principal = prendasLook.find((p) => p.fotoUrl) ?? prendasLook[0];
+  // Carrusel: la foto grande recorre todas las prendas del look; arranca en la primera con foto.
+  const [indice, setIndice] = useState(0);
+  const toqueX = useRef<number | null>(null);
+  const claveLook = prendasLook.map((p) => p.id).join(',');
+  useEffect(() => {
+    const primera = prendasLook.findIndex((p) => p.fotoUrl);
+    setIndice(primera >= 0 ? primera : 0);
+    // Solo cuando cambia el conjunto de prendas del look.
+  }, [claveLook]);
+  const principal = prendasLook[Math.min(indice, Math.max(prendasLook.length - 1, 0))];
+  const mover = (paso: number) => {
+    if (prendasLook.length < 2) return;
+    setIndice((i) => (i + paso + prendasLook.length) % prendasLook.length);
+  };
   const ciudad = yo?.perfil.ciudad;
 
   const subtitulo = (() => {
@@ -130,17 +143,61 @@ export function Hoy() {
         </Columna>
       ) : (
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-6 lg:px-16">
-          <Link
-            to="/sastra"
-            className="mx-[var(--margen)] mt-[18px] block h-[420px] overflow-hidden lg:col-span-6 lg:mx-0 lg:mt-10 lg:h-auto lg:aspect-[4/5]"
-            aria-label="Hablar con Sastra sobre este look"
+          <div
+            className="relative mx-[var(--margen)] mt-[18px] h-[420px] overflow-hidden lg:col-span-6 lg:mx-0 lg:mt-10 lg:h-auto lg:aspect-[4/5]"
+            onTouchStart={(e) => {
+              toqueX.current = e.touches[0]?.clientX ?? null;
+            }}
+            onTouchEnd={(e) => {
+              const inicio = toqueX.current;
+              toqueX.current = null;
+              const fin = e.changedTouches[0]?.clientX;
+              if (inicio == null || fin == null) return;
+              if (fin - inicio > 40) mover(-1);
+              else if (inicio - fin > 40) mover(1);
+            }}
           >
             {principal ? (
-              <FotoPrenda prenda={principal} className="h-full" sizes="(min-width: 1024px) 40vw, 100vw" />
+              <Link
+                to={`/armario/${encodeURIComponent(principal.id)}`}
+                className="block h-full"
+                aria-label={`Ver ${principal.nombre} en el armario`}
+              >
+                <FotoPrenda prenda={principal} className="h-full" sizes="(min-width: 1024px) 40vw, 100vw" />
+              </Link>
             ) : (
               <div className="h-full w-full bg-[var(--hilo)]" aria-hidden="true" />
             )}
-          </Link>
+
+            {prendasLook.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => mover(-1)}
+                  aria-label="Prenda anterior"
+                  className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--fondo)] text-[var(--texto)]"
+                >
+                  <IconoVolver />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mover(1)}
+                  aria-label="Prenda siguiente"
+                  className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--fondo)] text-[var(--texto)]"
+                >
+                  <IconoVolver className="rotate-180" />
+                </button>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-3 pb-3">
+                  <span className="max-w-[75%] bg-[var(--fondo)] px-2 py-1 text-[12px] leading-[1.3] text-[var(--texto)]">
+                    {principal?.nombre}
+                  </span>
+                  <span className="bg-[var(--fondo)] px-2 py-1 text-[12px] text-[var(--texto-2)]" aria-live="polite">
+                    {indice + 1} / {prendasLook.length}
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
 
           <div className="flex flex-col gap-[6px] px-[var(--margen)] pt-4 lg:col-span-5 lg:col-start-8 lg:px-0 lg:pt-10">
             <p className="serif m-0 text-[20px] leading-[1.2] lg:text-[28px]">{dia.look.titulo}</p>
@@ -168,11 +225,18 @@ export function Hoy() {
             ) : null}
 
             {prendasLook.length > 1 ? (
-              <div className="mt-3 flex gap-2" aria-label="Las prendas del look">
-                {prendasLook.map((p) => (
-                  <Link key={p.id} to={`/armario/${encodeURIComponent(p.id)}`} className="w-14 shrink-0" aria-label={p.nombre}>
+              <div className="mt-3 flex gap-2 overflow-x-auto" aria-label="Las prendas del look">
+                {prendasLook.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setIndice(i)}
+                    aria-label={`Ver ${p.nombre} en grande`}
+                    aria-pressed={i === indice}
+                    className={`w-14 shrink-0 border-b-2 pb-1 ${i === indice ? 'border-[var(--texto)]' : 'border-transparent'}`}
+                  >
                     <FotoPrenda prenda={p} className="aspect-[4/5]" sizes="56px" />
-                  </Link>
+                  </button>
                 ))}
               </div>
             ) : null}
