@@ -53,6 +53,8 @@ export interface ReqCatalogar {
   foto: Adjunto;
   /** texto opcional del usuario: "es una camisa de lino que compré en Zara" */
   pista?: string;
+  /** Subida por lotes: solo Guardarropa, sin la revisión de Calidad (la mitad de tiempo por foto). */
+  rapido?: boolean;
 }
 export interface RespCatalogar {
   propuesta: Omit<Prenda, 'id' | 'creadaEn' | 'actualizadaEn' | 'usosDesdeLavado' | 'estado'>;

@@ -46,12 +46,13 @@ rutasArmario.get(
 rutasArmario.post(
   '/prendas/catalogar',
   asincrono(async (req, res) => {
-    const { foto, pista } = (req.body ?? {}) as ReqCatalogar;
+    const { foto, pista, rapido } = (req.body ?? {}) as ReqCatalogar;
     if (!foto?.datos || foto.tipo !== 'imagen') throw peticionInvalida('Necesitamos una foto de la prenda.');
     const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email, { conClima: false });
     const r = await catalogarFoto(ctx, foto, pista);
     let preguntas = r.preguntas;
-    if (debeRevisar('catalogacion', JSON.stringify(r.propuesta))) {
+    // En lotes no pasa por Calidad: su revisión solo reformula preguntas y duplica el tiempo por foto.
+    if (!rapido && debeRevisar('catalogacion', JSON.stringify(r.propuesta))) {
       const rev = await revisarConCalidad(ctx, `Propuesta de catalogación: ${JSON.stringify(r.propuesta)}\nPreguntas: ${preguntas.join(' | ')}`, { tipo: 'catalogacion', pregunta: pista });
       // La revisión de catalogación solo puede aportar preguntas mejor formuladas; los datos ya vienen estructurados.
       if (rev.reviso && !rev.aprobado) {

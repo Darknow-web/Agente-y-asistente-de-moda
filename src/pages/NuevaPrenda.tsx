@@ -1,7 +1,11 @@
-/** Añadir prenda: foto → Guardarropa cataloga → revisas la propuesta → se guarda. */
+/**
+ * Añadir prenda: foto → Guardarropa cataloga → revisas la propuesta → se guarda.
+ * Varias fotos de la galería → se catalogan en paralelo y se guardan todas de una vez (lote).
+ */
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Adjunto } from '@shared/types';
+import type { RespCatalogar } from '@shared/api';
 import { api } from '@/lib/api';
 import { comprimirImagen, urlDeAdjunto } from '@/lib/imagenes';
 import { Cabecera } from '@/components/Cabecera';
@@ -11,7 +15,40 @@ import { Aviso } from '@/components/Aviso';
 import { IconoCamara } from '@/components/Iconos';
 import { aCampos, desdeCampos, FormularioPrenda, type CamposPrenda } from '@/components/FormularioPrenda';
 
-type Fase = 'foto' | 'catalogando' | 'revisar' | 'guardando';
+type Fase = 'foto' | 'catalogando' | 'revisar' | 'guardando' | 'lote';
+
+interface ItemLote {
+  id: string;
+  archivo: File;
+  adjunto?: Adjunto;
+  estado: 'preparando' | 'catalogando' | 'listo' | 'guardando' | 'guardada' | 'error';
+  propuesta?: RespCatalogar['propuesta'];
+  error?: string;
+}
+
+/** Fotos que se procesan a la vez en un lote (más no acelera: el límite lo pone el motor). */
+const EN_PARALELO = 3;
+
+/** Ejecuta `fn` sobre cada elemento con como máximo `n` a la vez. */
+async function enParalelo<T>(items: T[], n: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const obrero = async () => {
+    while (i < items.length) {
+      const item = items[i++]!;
+      await fn(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, obrero));
+}
+
+const ETIQUETA_ESTADO: Record<ItemLote['estado'], string> = {
+  preparando: 'Preparando',
+  catalogando: 'Guardarropa la mira',
+  listo: 'Lista',
+  guardando: 'Guardando',
+  guardada: 'En el armario',
+  error: 'Falló',
+};
 
 export function NuevaPrenda() {
   const navegar = useNavigate();
@@ -22,8 +59,71 @@ export function NuevaPrenda() {
   const [preguntas, setPreguntas] = useState<string[]>([]);
   const [respuestas, setRespuestas] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [lote, setLote] = useState<ItemLote[]>([]);
+  const [guardandoLote, setGuardandoLote] = useState(false);
   const camaraRef = useRef<HTMLInputElement>(null);
   const galeriaRef = useRef<HTMLInputElement>(null);
+
+  const actualizarItem = (id: string, cambios: Partial<ItemLote>) =>
+    setLote((lista) => lista.map((it) => (it.id === id ? { ...it, ...cambios } : it)));
+
+  /** Cataloga un elemento del lote (comprime + Guardarropa en modo rápido). */
+  const catalogarItem = async (item: ItemLote) => {
+    try {
+      let adjunto = item.adjunto;
+      if (!adjunto) {
+        actualizarItem(item.id, { estado: 'preparando', error: undefined });
+        adjunto = await comprimirImagen(item.archivo, 896);
+        actualizarItem(item.id, { adjunto });
+      }
+      actualizarItem(item.id, { estado: 'catalogando', error: undefined });
+      const r = await api.catalogar({ foto: adjunto, pista: pista.trim() || undefined, rapido: true });
+      actualizarItem(item.id, { estado: 'listo', propuesta: r.propuesta });
+    } catch (e) {
+      actualizarItem(item.id, { estado: 'error', error: e instanceof Error ? e.message : 'No se pudo catalogar.' });
+    }
+  };
+
+  /** Varias fotos a la vez: lote. */
+  const alElegirVarias = async (archivos: File[]) => {
+    setError(null);
+    const nuevos: ItemLote[] = archivos.map((archivo, i) => ({ id: `${Date.now()}-${i}`, archivo, estado: 'preparando' }));
+    setLote((lista) => [...lista, ...nuevos]);
+    setFase('lote');
+    await enParalelo(nuevos, EN_PARALELO, catalogarItem);
+  };
+
+  const reintentarFallidas = async () => {
+    const fallidas = lote.filter((it) => it.estado === 'error');
+    await enParalelo(fallidas, EN_PARALELO, catalogarItem);
+  };
+
+  const guardarLote = async () => {
+    const listas = lote.filter((it) => it.estado === 'listo' && it.propuesta);
+    if (!listas.length) return;
+    setGuardandoLote(true);
+    setError(null);
+    await enParalelo(listas, EN_PARALELO, async (item) => {
+      actualizarItem(item.id, { estado: 'guardando' });
+      try {
+        await api.crearPrenda({
+          prenda: { ...item.propuesta!, estado: 'limpia', usosDesdeLavado: 0, favorita: false },
+          foto: item.adjunto,
+        });
+        actualizarItem(item.id, { estado: 'guardada' });
+      } catch (e) {
+        actualizarItem(item.id, { estado: 'error', error: e instanceof Error ? e.message : 'No se pudo guardar.' });
+      }
+    });
+    setGuardandoLote(false);
+  };
+
+  const alElegirArchivos = (lista: FileList | null) => {
+    const archivos = Array.from(lista ?? []).filter((f) => f.type.startsWith('image/'));
+    if (!archivos.length) return;
+    if (archivos.length === 1 && fase !== 'lote') void alElegir(archivos[0]);
+    else void alElegirVarias(archivos);
+  };
 
   const alElegir = async (archivo: File | undefined) => {
     if (!archivo) return;
@@ -81,10 +181,12 @@ export function NuevaPrenda() {
         >
           <p className="m-0 mt-[10px] text-[14px] leading-[1.45] text-[var(--texto-2)]">
             {fase === 'foto'
-              ? 'Una foto sobre fondo claro, con la prenda extendida o colgada. Guardarropa hace el resto.'
+              ? 'Una foto sobre fondo claro, con la prenda extendida o colgada. Guardarropa hace el resto. Si eliges varias de la galería, se catalogan todas a la vez.'
               : fase === 'catalogando'
                 ? 'Guardarropa está mirando la foto.'
-                : 'Revisa lo que propone Guardarropa y corrige lo que haga falta.'}
+                : fase === 'lote'
+                  ? 'Guardarropa cataloga cada foto. Puedes corregir el nombre aquí y el resto después, desde la prenda.'
+                  : 'Revisa lo que propone Guardarropa y corrige lo que haga falta.'}
           </p>
         </Cabecera>
 
@@ -100,8 +202,12 @@ export function NuevaPrenda() {
           ref={galeriaRef}
           type="file"
           accept="image/*"
+          multiple
           className="visualmente-oculto"
-          onChange={(e) => void alElegir(e.target.files?.[0])}
+          onChange={(e) => {
+            alElegirArchivos(e.target.files);
+            e.target.value = '';
+          }}
         />
 
         {error ? (
@@ -132,9 +238,81 @@ export function NuevaPrenda() {
                 Tomar foto
               </button>
               <button type="button" className="boton-2 flex-1" onClick={() => galeriaRef.current?.click()}>
-                Elegir de la galería
+                Elegir de la galería (una o varias)
               </button>
             </div>
+          </div>
+        ) : null}
+
+        {fase === 'lote' ? (
+          <div className="mt-8 flex flex-col gap-6 pb-16">
+            <ul className="m-0 list-none border-t border-[var(--texto)] p-0">
+              {lote.map((it) => {
+                const vista = it.adjunto ? urlDeAdjunto(it.adjunto) : undefined;
+                const enCurso = it.estado === 'preparando' || it.estado === 'catalogando' || it.estado === 'guardando';
+                return (
+                  <li key={it.id} className="grid grid-cols-[56px_1fr_auto] items-center gap-4 border-b border-[var(--hilo)] py-3">
+                    {vista ? (
+                      <img src={vista} alt="" className="aspect-[4/5] w-14 object-cover" />
+                    ) : (
+                      <div className="aspect-[4/5] w-14 bg-[var(--hilo)]" aria-hidden="true" />
+                    )}
+                    <div className="min-w-0">
+                      {it.estado === 'listo' && it.propuesta ? (
+                        <input
+                          className="campo"
+                          aria-label="Nombre de la prenda"
+                          value={it.propuesta.nombre}
+                          onChange={(e) => actualizarItem(it.id, { propuesta: { ...it.propuesta!, nombre: e.target.value } })}
+                        />
+                      ) : (
+                        <p className="m-0 truncate text-[14px]">{it.propuesta?.nombre ?? it.archivo.name}</p>
+                      )}
+                      <p className="m-0 mt-1 text-[12px] text-[var(--texto-2)]">
+                        {it.estado === 'error' ? (it.error ?? ETIQUETA_ESTADO.error) : it.propuesta ? `${it.propuesta.categoria}${it.propuesta.colores?.length ? ` · ${it.propuesta.colores.join(', ')}` : ''}` : ETIQUETA_ESTADO[it.estado]}
+                      </p>
+                    </div>
+                    <span className={`text-[12px] ${it.estado === 'error' ? 'text-[var(--anil)]' : 'text-[var(--texto-2)]'}`} aria-live="polite">
+                      {enCurso ? ETIQUETA_ESTADO[it.estado] : it.estado === 'guardada' ? ETIQUETA_ESTADO.guardada : it.estado === 'error' ? ETIQUETA_ESTADO.error : ''}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {(() => {
+              const listas = lote.filter((it) => it.estado === 'listo').length;
+              const fallidas = lote.filter((it) => it.estado === 'error').length;
+              const enCurso = lote.some((it) => it.estado === 'preparando' || it.estado === 'catalogando' || it.estado === 'guardando');
+              const guardadas = lote.filter((it) => it.estado === 'guardada').length;
+              const todoHecho = !enCurso && listas === 0 && guardadas > 0;
+              return (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {todoHecho ? (
+                    <Link to="/armario" className="boton flex-1">
+                      Ver el armario ({guardadas} {guardadas === 1 ? 'prenda nueva' : 'prendas nuevas'})
+                    </Link>
+                  ) : (
+                    <button type="button" className="boton flex-1" disabled={!listas || guardandoLote || enCurso} onClick={() => void guardarLote()}>
+                      {guardandoLote ? 'Guardando' : enCurso ? 'Catalogando' : `Guardar ${listas} ${listas === 1 ? 'prenda' : 'prendas'}`}
+                    </button>
+                  )}
+                  {fallidas ? (
+                    <button type="button" className="boton-2 flex-1" disabled={enCurso} onClick={() => void reintentarFallidas()}>
+                      Reintentar {fallidas} {fallidas === 1 ? 'fallida' : 'fallidas'}
+                    </button>
+                  ) : null}
+                  <button type="button" className="boton-2 flex-1" disabled={enCurso} onClick={() => galeriaRef.current?.click()}>
+                    Añadir más fotos
+                  </button>
+                  {!todoHecho ? (
+                    <Link to="/armario" className="boton-2 flex-1">
+                      Cancelar
+                    </Link>
+                  ) : null}
+                </div>
+              );
+            })()}
           </div>
         ) : null}
 
