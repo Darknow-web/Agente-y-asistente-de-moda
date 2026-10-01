@@ -13,11 +13,13 @@ import { EstadoVacio } from '@/components/EstadoVacio';
 import { Aviso } from '@/components/Aviso';
 import { FotoPrenda, metaPrenda } from '@/components/TarjetaPrenda';
 import { Columna } from '@/components/Disposicion';
+import { PreguntaDelDia } from '@/components/PreguntaDelDia';
 
 export function Hoy() {
   const navegar = useNavigate();
   const { yo } = useSesion();
   const { datos, error, cargando, recargar } = useCarga(() => api.hoy());
+  const { datos: resumen } = useCarga(() => api.resumenArmario());
   const [registrando, setRegistrando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
@@ -165,6 +167,16 @@ export function Hoy() {
               </ul>
             ) : null}
 
+            {prendasLook.length > 1 ? (
+              <div className="mt-3 flex gap-2" aria-label="Las prendas del look">
+                {prendasLook.map((p) => (
+                  <Link key={p.id} to={`/armario/${encodeURIComponent(p.id)}`} className="w-14 shrink-0" aria-label={p.nombre}>
+                    <FotoPrenda prenda={p} className="aspect-[4/5]" sizes="56px" />
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+
             {dia.alternativa ? (
               <p className="m-0 mt-3 text-[13px] leading-[1.45] text-[var(--texto-2)]">
                 Alternativa: {dia.alternativa.titulo}.
@@ -194,6 +206,49 @@ export function Hoy() {
           </div>
         </div>
       )}
+
+      {!cargando ? (
+        <Columna className="pb-10 pt-10">
+          <div className="flex max-w-[40rem] flex-col gap-8">
+            {resumen?.sinEstrenar.length ? (
+              <section className="border-t border-[var(--texto)] pt-4" aria-label="Estreno pendiente">
+                <p className="m-0 text-[12px] text-[var(--texto-2)]">Estreno pendiente</p>
+                <p className="serif m-0 mt-1 text-[19px] leading-[1.25]">
+                  {resumen.sinEstrenar.length === 1 ? 'Una prenda nueva espera su primer día.' : `${resumen.sinEstrenar.length} prendas nuevas esperan su primer día.`}
+                </p>
+                <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[14px]">
+                  {resumen.sinEstrenar.slice(0, 4).map((p) => (
+                    <li key={p.id}>
+                      <Link to={`/armario/${encodeURIComponent(p.id)}`} className="border-b border-[var(--texto)]">
+                        {p.nombre}
+                      </Link>
+                      <span className="text-[var(--texto-2)]"> · {p.dias} {p.dias === 1 ? 'día' : 'días'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="m-0 mt-2 text-[13px] text-[var(--texto-2)]">Abre la prenda y Estilismo te da tres formas de ponértela.</p>
+              </section>
+            ) : null}
+
+            {resumen?.dormidas.length ? (
+              <section className="border-t border-[var(--texto)] pt-4" aria-label="Ropa dormida">
+                <p className="m-0 text-[12px] text-[var(--texto-2)]">Ropa dormida</p>
+                <p className="serif m-0 mt-1 text-[19px] leading-[1.25]">
+                  {resumen.dormidas.length === 1 ? 'Una prenda lleva más de dos meses sin salir.' : `${resumen.dormidas.length} prendas llevan más de dos meses sin salir.`}
+                </p>
+                <p className="m-0 mt-2 text-[14px] leading-[1.5] text-[var(--texto-2)]">
+                  {resumen.valorSinUso ? `Suman ${resumen.moneda === 'PEN' ? 'S/' : resumen.moneda} ${resumen.valorSinUso} que no se están usando. ` : ''}
+                  <Link to="/armario?filtro=dormidas" className="border-b border-[var(--texto)] text-[var(--texto)]">
+                    Verlas en el armario
+                  </Link>
+                </p>
+              </section>
+            ) : null}
+
+            <PreguntaDelDia />
+          </div>
+        </Columna>
+      ) : null}
     </div>
   );
 }

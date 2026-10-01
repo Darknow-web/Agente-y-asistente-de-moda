@@ -5,6 +5,12 @@ import App from './App';
 import { ProveedorSesion } from './lib/sesion';
 import './styles/app.css';
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined);
+  });
+}
+
 const raiz = document.getElementById('raiz');
 if (!raiz) throw new Error('No existe el elemento #raiz en index.html.');
 

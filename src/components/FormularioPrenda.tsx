@@ -13,6 +13,8 @@ export interface CamposPrenda {
   ocasiones: string;
   usosMaxAntesDeLavar: string;
   notas: string;
+  precio: string;
+  compradaEn: string;
 }
 
 export const NOMBRE_TEMPORADA: Record<Temporada, string> = {
@@ -36,6 +38,8 @@ export function aCampos(p: Base): CamposPrenda {
     ocasiones: (p.ocasiones ?? []).join(', '),
     usosMaxAntesDeLavar: p.usosMaxAntesDeLavar != null ? String(p.usosMaxAntesDeLavar) : '3',
     notas: p.notas ?? '',
+    precio: p.precio != null ? String(p.precio) : '',
+    compradaEn: p.compradaEn?.slice(0, 10) ?? '',
   };
 }
 
@@ -48,6 +52,7 @@ function lista(texto: string): string[] {
 
 export function desdeCampos(c: CamposPrenda): Omit<Prenda, 'id' | 'creadaEn' | 'actualizadaEn' | 'estado' | 'usosDesdeLavado'> {
   const usos = Number.parseInt(c.usosMaxAntesDeLavar, 10);
+  const precio = Number.parseFloat(String(c.precio ?? '').replace(',', '.'));
   return {
     nombre: c.nombre.trim() || 'Prenda sin nombre',
     categoria: c.categoria,
@@ -59,6 +64,8 @@ export function desdeCampos(c: CamposPrenda): Omit<Prenda, 'id' | 'creadaEn' | '
     ocasiones: lista(c.ocasiones),
     usosMaxAntesDeLavar: Number.isFinite(usos) && usos > 0 ? usos : 3,
     notas: c.notas.trim() || undefined,
+    precio: Number.isFinite(precio) && precio >= 0 ? precio : undefined,
+    compradaEn: /^\d{4}-\d{2}-\d{2}$/.test(c.compradaEn) ? c.compradaEn : undefined,
   };
 }
 
@@ -137,6 +144,8 @@ export function FormularioPrenda({
       </div>
       {campo('ocasiones', 'Ocasiones', { placeholder: 'oficina, casual, fiesta' })}
       {campo('usosMaxAntesDeLavar', 'Usos antes de lavar', { tipo: 'number', min: 1 })}
+      {campo('precio', 'Precio (para el costo por uso)', { tipo: 'number', min: 0, placeholder: '120' })}
+      {campo('compradaEn', 'Fecha de compra', { tipo: 'date' })}
       <div className="sm:col-span-2">
         <label htmlFor={`${idBase}-notas`} className="campo-etiqueta">
           Notas

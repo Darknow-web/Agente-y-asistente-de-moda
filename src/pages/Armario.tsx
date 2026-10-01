@@ -1,6 +1,6 @@
 /** Armario: retícula de prendas con filtros por categoría. */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { CategoriaPrenda } from '@shared/types';
 import { api } from '@/lib/api';
 import { useCarga } from '@/lib/useCarga';
@@ -36,19 +36,36 @@ const ORDEN: CategoriaPrenda[] = [
   'otro',
 ];
 
+type Filtro = CategoriaPrenda | 'todo' | 'dormidas' | 'sin-estrenar';
+
 export function Armario() {
   const { datos: prendas, error, cargando } = useCarga(() => api.prendas());
-  const [filtro, setFiltro] = useState<CategoriaPrenda | 'todo'>('todo');
+  const { datos: resumen } = useCarga(() => api.resumenArmario());
+  const [params, setParams] = useSearchParams();
+  const inicial = params.get('filtro');
+  const [filtro, setFiltroEstado] = useState<Filtro>(inicial === 'dormidas' || inicial === 'sin-estrenar' ? inicial : 'todo');
+  const setFiltro = (f: Filtro) => {
+    setFiltroEstado(f);
+    setParams(f === 'dormidas' || f === 'sin-estrenar' ? { filtro: f } : {}, { replace: true });
+  };
 
   const categorias = useMemo(() => {
     const presentes = new Set((prendas ?? []).map((p) => p.categoria));
     return ORDEN.filter((c) => presentes.has(c));
   }, [prendas]);
 
-  const visibles = useMemo(
-    () => (prendas ?? []).filter((p) => filtro === 'todo' || p.categoria === filtro),
-    [prendas, filtro],
-  );
+  const visibles = useMemo(() => {
+    const lista = prendas ?? [];
+    if (filtro === 'dormidas') {
+      const ids = new Set((resumen?.dormidas ?? []).map((p) => p.id));
+      return lista.filter((p) => ids.has(p.id));
+    }
+    if (filtro === 'sin-estrenar') {
+      const ids = new Set((resumen?.sinEstrenar ?? []).map((p) => p.id));
+      return lista.filter((p) => ids.has(p.id));
+    }
+    return lista.filter((p) => filtro === 'todo' || p.categoria === filtro);
+  }, [prendas, filtro, resumen]);
 
   const total = prendas?.length ?? 0;
 
@@ -123,7 +140,25 @@ export function Armario() {
                   {NOMBRE_CATEGORIA[c]}
                 </button>
               ))}
+              {resumen?.dormidas.length ? (
+                <button type="button" role="tab" aria-selected={filtro === 'dormidas'} className="chip" onClick={() => setFiltro('dormidas')}>
+                  Dormidas · {resumen.dormidas.length}
+                </button>
+              ) : null}
+              {resumen?.sinEstrenar.length ? (
+                <button type="button" role="tab" aria-selected={filtro === 'sin-estrenar'} className="chip" onClick={() => setFiltro('sin-estrenar')}>
+                  Sin estrenar · {resumen.sinEstrenar.length}
+                </button>
+              ) : null}
             </div>
+          ) : null}
+
+          {filtro === 'dormidas' || filtro === 'sin-estrenar' ? (
+            <p className="m-0 px-[var(--margen)] pt-4 text-[14px] leading-[1.5] text-[var(--texto-2)] lg:px-16">
+              {filtro === 'dormidas'
+                ? `Más de dos meses sin uso.${resumen?.valorSinUso ? ` Entre dormidas y sin estrenar suman ${resumen.moneda === 'PEN' ? 'S/' : resumen.moneda} ${resumen.valorSinUso}.` : ''} Abre una y pídele a Estilismo tres formas de ponértela.`
+                : 'Prendas nuevas que todavía no han salido. Abre una y Estilismo te propone su estreno.'}
+            </p>
           ) : null}
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-[22px] px-[var(--margen)] pt-5 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-10 lg:px-16 lg:pt-8">

@@ -4,6 +4,7 @@
  */
 import type {
   Adjunto,
+  Ajuste,
   Conversacion,
   Deseo,
   EventoChat,
@@ -15,15 +16,23 @@ import type {
 import type {
   ErrorApi,
   Invitado,
+  ReqAjuste,
   ReqCatalogar,
   ReqCrearPrenda,
   ReqGenerarSemana,
+  ReqIndiceCompra,
   ReqPerfil,
+  ReqRegistrarUso,
+  ReqRespuestaPregunta,
   RespAvisos,
   RespCatalogar,
+  RespClavePush,
   RespHoy,
+  RespIndiceCompra,
   RespPerfil,
+  RespPreguntaDelDia,
   RespPrendas,
+  RespResumenArmario,
   RespResumenUso,
   RespSalud,
   RespSemana,
@@ -107,9 +116,23 @@ export const api = {
   editarPrenda: (id: string, cambios: Partial<Prenda>) =>
     patch<Prenda>(`/api/prendas/${encodeURIComponent(id)}`, cambios),
   eliminarPrenda: (id: string) => del<{ ok: true }>(`/api/prendas/${encodeURIComponent(id)}`),
-  registrarUso: (id: string, contexto?: string) =>
-    post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/uso`, contexto ? { contexto } : {}),
+  registrarUso: (id: string, contexto?: string, ajuste?: ReqRegistrarUso['ajuste']) =>
+    post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/uso`, { contexto: contexto || undefined, ajuste } satisfies ReqRegistrarUso),
   marcarLavada: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/lavada`),
+  formasDeUso: (id: string, regenerar = false) =>
+    post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/formas${regenerar ? '?regenerar=1' : ''}`),
+  resumenArmario: () => get<RespResumenArmario>('/api/armario/resumen'),
+  ajustes: () => get<Ajuste[]>('/api/ajustes'),
+  crearAjuste: (a: ReqAjuste) => post<Ajuste>('/api/ajustes', a),
+
+  preguntaDelDia: () => get<RespPreguntaDelDia>('/api/pregunta-del-dia'),
+  responderPregunta: (r: ReqRespuestaPregunta) => post<Perfil>('/api/pregunta-del-dia', r),
+
+  indiceCompra: (req: ReqIndiceCompra) => post<RespIndiceCompra>('/api/probador/indice', req),
+
+  clavePush: () => get<RespClavePush>('/api/push/clave'),
+  suscribirPush: (s: PushSubscriptionJSON & { dispositivo?: string }) => post<{ ok: true }>('/api/push/suscripcion', s),
+  desuscribirPush: (endpoint: string) => peticion<{ ok: true }>('DELETE', '/api/push/suscripcion', { endpoint }),
 
   hoy: () => get<RespHoy>('/api/planes/hoy'),
   semana: (inicio: string) => get<RespSemana>(`/api/planes/semana?inicio=${encodeURIComponent(inicio)}`),

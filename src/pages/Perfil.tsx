@@ -1,8 +1,9 @@
 /** Perfil: lo que Sastra sabe de ti, editable en línea, y accesos a avisos, deseos y diagnóstico. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Deseo, Genero, Perfil as TipoPerfil } from '@shared/types';
+import type { Deseo, Genero, Perfil as TipoPerfil, TallaMarca } from '@shared/types';
 import { api } from '@/lib/api';
+import { activarPush, desactivarPush, estadoPush, soportaPush } from '@/lib/push';
 import { useSesion } from '@/lib/sesion';
 import { useCarga } from '@/lib/useCarga';
 import { DIAS_SEMANA, fechaMedia } from '@/lib/fechas';
@@ -25,6 +26,9 @@ interface Campos {
   presupuestoMensual: string;
   moneda: string;
   rutina: string[]; // 7 entradas, lunes a domingo
+  tallasPorMarca: string; // "Zara M, H&M L"
+  estaturaCm: string;
+  silueta: string;
 }
 
 const GENEROS: { valor: Genero; texto: string }[] = [
@@ -59,7 +63,22 @@ function aCampos(p: TipoPerfil): Campos {
     presupuestoMensual: p.presupuestoMensual != null ? String(p.presupuestoMensual) : '',
     moneda: p.moneda ?? 'PEN',
     rutina: DIAS_SEMANA.map((d) => (p.rutina?.[d] ?? []).join(', ')),
+    tallasPorMarca: (p.tallasPorMarca ?? []).map((t) => `${t.marca} ${t.talla}`).join(', '),
+    estaturaCm: p.estaturaCm != null ? String(p.estaturaCm) : '',
+    silueta: p.silueta ?? '',
   };
+}
+
+function tallasPorMarcaDesde(texto: string): TallaMarca[] {
+  return texto
+    .split(/[,;\n]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => {
+      const m = t.match(/^(.+?)\s+([^\s]+)$/);
+      return m ? { marca: m[1]!.trim(), talla: m[2]!.trim() } : null;
+    })
+    .filter((t): t is TallaMarca => Boolean(t));
 }
 
 function lista(t: string): string[] {
@@ -76,6 +95,7 @@ function desdeCampos(c: Campos): Partial<TipoPerfil> {
     if (v.length) rutina[d] = v;
   });
   const presupuesto = Number.parseFloat(c.presupuestoMensual.replace(',', '.'));
+  const estatura = Number.parseInt(c.estaturaCm, 10);
   return {
     nombre: c.nombre.trim() || undefined,
     genero: c.genero || undefined,
@@ -92,6 +112,9 @@ function desdeCampos(c: Campos): Partial<TipoPerfil> {
     presupuestoMensual: Number.isFinite(presupuesto) ? presupuesto : undefined,
     moneda: c.moneda.trim() || undefined,
     rutina,
+    tallasPorMarca: tallasPorMarcaDesde(c.tallasPorMarca),
+    estaturaCm: Number.isFinite(estatura) && estatura > 100 ? estatura : undefined,
+    silueta: c.silueta.trim() || undefined,
   };
 }
 
@@ -119,6 +142,27 @@ export function Perfil() {
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
   const { datos: avisos } = useCarga(() => api.avisos());
+  const [push, setPush] = useState<'activo' | 'inactivo' | 'bloqueado' | 'no-disponible' | 'cargando'>('cargando');
+  useEffect(() => {
+    void estadoPush().then(setPush);
+  }, []);
+  const alternarPush = async () => {
+    setAviso(null);
+    try {
+      if (push === 'activo') {
+        await desactivarPush();
+        setPush('inactivo');
+        setAviso({ tipo: 'ok', texto: 'Avisos desactivados en este dispositivo.' });
+      } else {
+        await activarPush();
+        setPush('activo');
+        setAviso({ tipo: 'ok', texto: 'Listo. Sastra te avisará aquí aunque la app esté cerrada.' });
+      }
+    } catch (e) {
+      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudieron activar los avisos.' });
+      void estadoPush().then(setPush);
+    }
+  };
   const { datos: deseos, setDatos: setDeseos, cargando: cargandoDeseos } = useCarga(() => api.deseos());
   const { datos: salud } = useCarga(() => api.salud());
 
@@ -275,6 +319,11 @@ export function Perfil() {
                     {campo('inferior', 'Inferior', '27')}
                     {campo('calzado', 'Calzado', '37')}
                   </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {campo('tallasPorMarca', 'Tallas por marca (marca y talla, separadas por coma)', 'Zara M, H&M L, Levi\'s 30')}
+                    {campo('estaturaCm', 'Estatura en cm', '165', 'number')}
+                  </div>
+                  <div className="mt-4">{campo('silueta', 'Tu cuerpo, en tus palabras (opcional)', 'hombros anchos, cintura marcada')}</div>
                 </fieldset>
 
                 <fieldset className="m-0 border-0 p-0">
@@ -299,6 +348,16 @@ export function Perfil() {
                 <Fila dt="Tu estilo, en tus palabras" dd={perfil.estilo?.length ? perfil.estilo.join(', ') : undefined} vacio="Cuéntaselo a Sastra en Editar." />
                 <Fila dt="Rutina" dd={rutinaTexto || undefined} vacio="Con tu rutina, Planificación arma mejor la semana." />
                 <Fila dt="Tallas" dd={tallasTexto || undefined} vacio="Sirven en el probador para saber qué talla pedir." />
+                <Fila
+                  dt="Tallas por marca"
+                  dd={perfil.tallasPorMarca?.length ? perfil.tallasPorMarca.map((t) => `${t.marca} ${t.talla}`).join(' · ') : undefined}
+                  vacio="Lo que mejor predice cómo te quedará algo: 'en Zara soy M'."
+                />
+                <Fila
+                  dt="Estatura y silueta"
+                  dd={[perfil.estaturaCm ? `${perfil.estaturaCm} cm` : '', perfil.silueta ?? ''].filter(Boolean).join(' · ') || undefined}
+                  vacio="Ayuda con largos y proporciones. Sastra lo pregunta de a poco."
+                />
                 <Fila dt="Lo que Sastra ha aprendido" dd={perfil.aprendizajes?.length ? perfil.aprendizajes.join('. ') + '.' : undefined} vacio="Se irá llenando con tus conversaciones." />
                 <Fila
                   dt="Presupuesto de compras"
@@ -311,6 +370,18 @@ export function Perfil() {
 
           <div className="mt-[22px] flex flex-col gap-[10px] lg:col-span-4 lg:col-start-9 lg:mt-[22px]">
             <EnlaceCaja a="/avisos" texto="Avisos y recordatorios" meta={avisos ? (nuevos ? `${nuevos} ${nuevos === 1 ? 'nuevo' : 'nuevos'}` : 'Al día') : ''} />
+            <EnlaceCaja a="/avisos?vista=diario" texto="Diario del departamento" meta="Qué hizo el equipo" />
+            {soportaPush() && push !== 'no-disponible' ? (
+              <button
+                type="button"
+                className="flex h-12 items-center justify-between border border-[var(--texto)] px-4 text-left text-[14px] font-medium"
+                disabled={push === 'cargando' || push === 'bloqueado'}
+                onClick={() => void alternarPush()}
+              >
+                Avisos en este dispositivo
+                <span className="text-[12px] text-[var(--texto-2)]">{push === 'activo' ? 'Activados' : push === 'bloqueado' ? 'Bloqueados en el navegador' : push === 'cargando' ? '' : 'Activar'}</span>
+              </button>
+            ) : null}
             <EnlaceCaja a="#deseos" texto="Lista de deseos" meta={deseos ? `${deseos.length} ${deseos.length === 1 ? 'prenda' : 'prendas'}` : ''} />
             <EnlaceCaja a="/probador" texto="Probador" meta="Foto o video" />
             <EnlaceCaja

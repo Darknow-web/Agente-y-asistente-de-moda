@@ -18,6 +18,12 @@ import { Perfil } from './pages/Perfil';
 import { Avisos } from './pages/Avisos';
 import { Diagnostico } from './pages/Diagnostico';
 import { Invitados } from './pages/Invitados';
+import { Bienvenida } from './pages/Bienvenida';
+
+/** Sin bienvenida completada y sin datos básicos → se ofrece la bienvenida una vez. */
+function necesitaBienvenida(perfil: { bienvenidaCompletada?: boolean; ciudad?: string; estilo?: string[] }): boolean {
+  return !perfil.bienvenidaCompletada && !perfil.ciudad && !(perfil.estilo?.length);
+}
 
 /** Solo con sesión e invitación. Envuelve en la disposición con navegación. */
 function Privado({ children, sinNav = false, soloAdmin = false }: { children: ReactNode; sinNav?: boolean; soloAdmin?: boolean }) {
@@ -54,6 +60,9 @@ function Privado({ children, sinNav = false, soloAdmin = false }: { children: Re
   }
   if (!yo.invitado) return <Navigate to="/sin-acceso" replace />;
   if (soloAdmin && !yo.admin) return <Navigate to="/perfil" replace />;
+  if (necesitaBienvenida(yo.perfil) && ubicacion.pathname !== '/bienvenida' && ubicacion.pathname !== '/diagnostico') {
+    return <Navigate to="/bienvenida" replace />;
+  }
   return <Disposicion sinNav={sinNav}>{children}</Disposicion>;
 }
 
@@ -92,6 +101,14 @@ export default function App() {
       <Route path="/" element={<Inicio />} />
       <Route path="/sin-acceso" element={<RutaSinAcceso />} />
       <Route path="/diagnostico" element={<RutaDiagnostico />} />
+      <Route
+        path="/bienvenida"
+        element={
+          <Privado sinNav>
+            <Bienvenida />
+          </Privado>
+        }
+      />
       <Route
         path="/hoy"
         element={

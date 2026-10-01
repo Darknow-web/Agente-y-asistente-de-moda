@@ -5,7 +5,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Adjunto, NombreAgente } from '@shared/types';
+import type { RespIndiceCompra } from '@shared/api';
 import { api, chatStream } from '@/lib/api';
+import { useCarga } from '@/lib/useCarga';
 import { prepararArchivo, urlDeAdjunto } from '@/lib/imagenes';
 import { fraseTrabajando, parrafos } from '@/lib/chat';
 import { Isotipo } from '@/components/Marca';
@@ -27,6 +29,9 @@ export function Probador() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [indice, setIndice] = useState<RespIndiceCompra | null>(null);
+  const [calculando, setCalculando] = useState(false);
+  const { datos: prendas } = useCarga(() => api.prendas());
   const conversacionRef = useRef<string | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
   const camaraRef = useRef<HTMLInputElement>(null);
@@ -114,6 +119,16 @@ export function Probador() {
       if (texto === TEXTO_INICIAL) {
         setMedio(adjunto);
         conversacionRef.current = undefined;
+        setIndice(null);
+        // Índice de compra en paralelo al veredicto (solo fotos)
+        if (adjunto.tipo === 'imagen') {
+          setCalculando(true);
+          api
+            .indiceCompra({ foto: adjunto })
+            .then(setIndice)
+            .catch(() => setIndice(null))
+            .finally(() => setCalculando(false));
+        }
       }
       await consultar(adjunto, texto);
     } catch (e) {
@@ -140,6 +155,8 @@ export function Probador() {
   };
 
   const urlMedio = medio ? urlDeAdjunto(medio) : undefined;
+  const nombres = (ids: string[]) => ids.map((id) => prendas?.find((p) => p.id === id)?.nombre).filter((n): n is string => Boolean(n));
+  const VEREDICTO: Record<RespIndiceCompra['veredicto'], string> = { comprala: 'Cómprala', 'pruebate-otra-talla': 'Prueba otra talla', dejala: 'Déjala', pensarlo: 'Piénsalo' };
   const partes = parrafos(veredicto);
   const titular = partes[0] ?? '';
   const resto = partes.slice(1);
@@ -241,6 +258,31 @@ export function Probador() {
               {medio?.tipo === 'video' ? 'Video del probador' : 'Foto del probador'}
               {medio?.nombre ? ` · ${medio.nombre}` : ''}
             </span>
+            {indice ? (
+              <div className="flex flex-col gap-1 border border-[var(--linea)] p-4" aria-label="Índice de compra">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="serif text-[26px] leading-none">
+                    {indice.indice}
+                    <span className="text-[14px] text-[var(--texto-2)]">/10</span>
+                  </span>
+                  <span className="text-[13px] font-medium">{VEREDICTO[indice.veredicto]}</span>
+                </div>
+                <span className="text-[12px] text-[var(--texto-2)]">Probabilidad de que la uses de verdad</span>
+                <p className="m-0 mt-1 text-[14px] leading-[1.5]">{indice.resumen}</p>
+                {indice.combinaCon.length ? (
+                  <p className="m-0 text-[13px] leading-[1.5] text-[var(--texto-2)]">
+                    Combina con {indice.combinaCon.length} {indice.combinaCon.length === 1 ? 'prenda tuya' : 'prendas tuyas'}
+                    {nombres(indice.combinaCon).length ? `: ${nombres(indice.combinaCon).slice(0, 4).join(', ')}` : ''}.
+                  </p>
+                ) : null}
+                {indice.similares.length ? (
+                  <p className="m-0 text-[13px] leading-[1.5] text-[var(--texto-2)]">Ya tienes algo parecido: {nombres(indice.similares).slice(0, 3).join(', ') || `${indice.similares.length} prendas`}.</p>
+                ) : null}
+                {indice.vacioQueLlena ? <p className="m-0 text-[13px] leading-[1.5] text-[var(--texto-2)]">Llenaría un vacío: {indice.vacioQueLlena}.</p> : null}
+              </div>
+            ) : calculando ? (
+              <span className="text-[12px] text-[var(--texto-2)]">Calculando cuánto la usarías</span>
+            ) : null}
             <h2 className={`h2 m-0 text-[30px] leading-[1.08] ${enCurso && !resto.length ? 'escribiendo' : ''}`}>{titular}</h2>
             {resto.map((p, i) => (
               <p
