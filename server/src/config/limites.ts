@@ -10,9 +10,7 @@ export interface Limites {
   videoMaxMB: number;
   mensajesEnContexto: number;
   resumirCadaMensajes: number;
-  /** Tiempo máximo por llamada a un motor de IA (después se reintenta o se cae a otro). */
   segundosMaxPorLlamadaIA: number;
-  /** Tiempo máximo total de una respuesta del chat antes de avisar al cliente. */
   segundosMaxPorRespuesta: number;
   calidad: { revisa: string[]; minCaracteres: number };
   busquedaWebMaxPorDia: number;

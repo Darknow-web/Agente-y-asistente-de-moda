@@ -59,7 +59,7 @@ if (esProduccion()) {
 } else {
   const { createServer: createViteServer } = await import('vite');
   const vite = await createViteServer({
-    server: { middlewareMode: true, host: '0.0.0.0' },
+    server: { middlewareMode: true, host: '0.0.0.0', hmr: false },
     appType: 'spa',
   });
   app.use(vite.middlewares);
@@ -67,7 +67,7 @@ if (esProduccion()) {
 
 app.use(manejadorErrores);
 
-const puerto = Number(env('PORT', '3000'));
+const puerto = esProduccion() ? Number(env('PORT', '8080')) : 3000;
 app.listen(puerto, '0.0.0.0', () => {
   const fb = iniciarFirebase();
   console.log(

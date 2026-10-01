@@ -148,35 +148,22 @@ rutasChat.post(
     const latido = setInterval(() => res.write(': latido\n\n'), 15000);
     const abortar = new AbortController();
     req.on('close', () => abortar.abort());
-    // Tope total de la respuesta: si el departamento no termina a tiempo, se avisa en vez de dejar el chat colgado.
     let vencioTiempo = false;
-    const tope = setTimeout(() => {
-      vencioTiempo = true;
-      abortar.abort();
-    }, lim.segundosMaxPorRespuesta * 1000);
+    const tope = setTimeout(() => { vencioTiempo = true; abortar.abort(); }, lim.segundosMaxPorRespuesta * 1000);
 
     try {
       const ctx = await construirContexto(usuario.uid, usuario.email);
       const partesAdjuntos = adjuntos.map(adjuntoAParte).filter((p): p is Parte => !!p);
       const historial = historialAModelo(conversacion, partesAdjuntos, lim.mensajesEnContexto);
 
-      // Texto en vivo: lo que el Director escribe se muestra al instante. Si después cambia (otra
-      // vuelta, revisión de Calidad, fuentes), el evento `fin` trae la versión definitiva.
       let enVivo = '';
       const resultado = await correrDirector({
         ctx,
         historial,
         adjuntosActuales: partesAdjuntos,
         onDepartamento: (agente, estado) => enviar(res, { tipo: 'departamento', agente, estado }),
-        onTexto: (delta) => {
-          enVivo += delta;
-          enviar(res, { tipo: 'texto', delta });
-        },
-        onNuevaVuelta: () => {
-          if (!enVivo) return;
-          enVivo = '';
-          enviar(res, { tipo: 'texto-reiniciar' });
-        },
+        onTexto: (delta) => { enVivo += delta; enviar(res, { tipo: 'texto', delta }); },
+        onNuevaVuelta: () => { if (!enVivo) return; enVivo = ''; enviar(res, { tipo: 'texto-reiniciar' }); },
         senal: abortar.signal,
       });
 
@@ -195,7 +182,7 @@ rutasChat.post(
         textoFinal += '\n\nFuentes: ' + fuentes.map((f) => `${f.titulo || 'enlace'} (${f.url})`).join(' · ');
       }
 
-      // Completar lo que no se transmitió en vivo (o reemplazar todo si Calidad lo cambió)
+      // Emitimos el texto por tramos para una lectura fluida
       const pendiente = textoFinal.startsWith(enVivo) ? textoFinal.slice(enVivo.length) : null;
       if (pendiente === null) enviar(res, { tipo: 'texto-reiniciar' });
       for (const tramo of trocear(pendiente ?? textoFinal)) {
@@ -212,12 +199,9 @@ rutasChat.post(
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : String(e);
       console.error('[chat] error:', e);
-      enviar(res, {
-        tipo: 'error',
-        mensaje: vencioTiempo
-          ? `El departamento tardó más de ${Math.round(lim.segundosMaxPorRespuesta / 60)} minutos y se detuvo. Vuelve a intentarlo; si se repite, el motor de IA está saturado.`
-          : humanizar(mensaje),
-      });
+      enviar(res, { tipo: 'error', mensaje: vencioTiempo
+        ? `El departamento tardó más de ${Math.round(lim.segundosMaxPorRespuesta / 60)} minutos y se detuvo. Vuelve a intentarlo; si se repite, el motor de IA está saturado.`
+        : humanizar(mensaje) });
     } finally {
       clearTimeout(tope);
       clearInterval(latido);

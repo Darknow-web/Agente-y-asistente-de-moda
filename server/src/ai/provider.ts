@@ -35,10 +35,6 @@ export interface ParteLlamadaHerramienta {
   idLlamada: string;
   nombre: string;
   argumentos: Record<string, unknown>;
-  /**
-   * Firma opaca que algunos proveedores adjuntan a la llamada y exigen recibir de vuelta
-   * (Gemini 3: `thoughtSignature`). Se guarda tal cual y solo la entiende quien la emitió.
-   */
   firma?: string;
 }
 

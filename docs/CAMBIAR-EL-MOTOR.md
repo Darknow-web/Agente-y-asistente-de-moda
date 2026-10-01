@@ -27,7 +27,7 @@ Claude. Cambiar uno, todos, o mezclarlos, es editar un archivo de texto o una va
 Los niveles se traducen a modelos reales en la parte de arriba del mismo archivo:
 
 ```json
-"gemini": { "lite": "gemini-3.1-flash-lite", "flash": "gemini-3.1-flash-lite", "pro": "gemini-3.8-flash" },
+"gemini": { "lite": "gemini-3.1-flash-lite", "flash": "gemini-3.8-flash", "pro": "gemini-3.1-pro-preview" },
 "claude": { "lite": "claude-haiku-4-5", "flash": "claude-sonnet-5-5", "pro": "claude-opus-5-5" }
 ```
 
@@ -62,14 +62,8 @@ prueba y no llama a ningún motor.
 Claude analiza fotos pero no video. Si un agente configurado con Claude recibe un video, SASTRA lo manda a
 Gemini al mismo nivel automáticamente y lo anota en los registros. La búsqueda en internet funciona con ambos.
 
-## Cómo viene configurado (desde el 30/09/2026)
+## Recomendación
 
-- **Conversación en Claude Haiku** (`director`, `estilismo`, `cuidado`, `probador`, nivel `lite`): responde
-  en 1 o 2 segundos, es estable y maneja bien las herramientas. Cuesta unos $2 a $5 al mes por persona activa.
-- **Gemini** para lo que Claude no hace o no hace falta pagar: `guardarropa` (fotos), `planificacion` y
-  `compras` (textos largos en segundo plano) y `calidad` (revisión).
-- **Dos empresas detrás**: si Gemini se satura, SASTRA cae a Claude al mismo nivel (salvo con video); si
-  Claude falla o no hay llave, cae a Gemini. Sin `ANTHROPIC_API_KEY`, todo funciona en Gemini.
-
-Para volver a todo Gemini basta con poner `"proveedor": "gemini"` en esos cuatro agentes. Los costos por
-agente se ven en `/api/uso/resumen`.
+Empieza con todo en Gemini (como viene). Cuando quieras probar si Claude conversa mejor para tu público,
+cambia solo `director` o `estilismo` a `claude` durante una semana y compara. Los costos por agente se ven en
+`/api/uso/resumen`.

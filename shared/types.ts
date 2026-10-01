@@ -215,7 +215,6 @@ export type EventoChat =
   | { tipo: 'inicio'; conversacionId: string; mensajeId: string }
   | { tipo: 'departamento'; agente: NombreAgente; estado: 'trabajando' | 'listo' }
   | { tipo: 'texto'; delta: string }
-  /** El texto mostrado hasta ahora era provisional (el modelo siguió trabajando): se empieza de nuevo. */
   | { tipo: 'texto-reiniciar' }
   | { tipo: 'pregunta'; texto: string }
   | { tipo: 'fin'; mensaje: Mensaje }

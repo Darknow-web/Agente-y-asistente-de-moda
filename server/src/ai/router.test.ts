@@ -71,15 +71,6 @@ function nuevoRouter() {
   return { r, gemini, claude };
 }
 
-/** Router con Gemini solamente: sin llave ni instancia de Claude, el respaldo es otro nivel de Gemini. */
-function nuevoRouterSoloGemini() {
-  const gemini = new ProveedorFalso('gemini');
-  const r = new Router();
-  r.esperaReintentoMs = 0;
-  r.registrarProveedor('gemini', gemini);
-  return { r, gemini };
-}
-
 const VARIABLES = ['MOTOR_MODO', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY', 'MOTOR_ESTILISMO', 'MOTOR_CUIDADO', 'MOTOR_DIRECTOR', 'MOTOR_COMPRAS'];
 
 beforeEach(() => {
@@ -99,13 +90,8 @@ afterEach(() => {
 describe('resolverMotor', () => {
   it('usa modelos.json por defecto y traduce el nivel al modelo real', () => {
     const config = cargarConfigModelos();
-    expect(resolverMotor('guardarropa')).toEqual({ proveedor: 'gemini', modelo: config.gemini.flash, nivel: 'flash' });
-    // La conversación va en Claude (lite = Haiku); sin ANTHROPIC_API_KEY cae a Gemini al mismo nivel.
-    expect(config.agentes.director).toMatchObject({ proveedor: 'claude', nivel: 'lite' });
-    expect(resolverMotor('director')).toEqual({ proveedor: 'gemini', modelo: config.gemini.lite, nivel: 'lite' });
-    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
-    reiniciarEstadoRouter();
-    expect(resolverMotor('director')).toEqual({ proveedor: 'claude', modelo: config.claude.lite, nivel: 'lite' });
+    expect(resolverMotor('director')).toEqual({ proveedor: 'gemini', modelo: config.gemini.flash, nivel: 'flash' });
+    expect(resolverMotor('cuidado')).toEqual({ proveedor: 'gemini', modelo: config.gemini.lite, nivel: 'lite' });
   });
 
   it('aplica las variantes diario y busqueda', () => {
@@ -161,14 +147,13 @@ describe('Router.generar', () => {
       registros.push(registro);
     };
     const { respuesta, costoUsd } = await r.generar('director', opcionesBase);
-    const esperado = resolverMotor('director').modelo;
     expect(gemini.llamadas).toHaveLength(1);
-    expect(gemini.llamadas[0].modelo).toBe(esperado);
+    expect(gemini.llamadas[0].modelo).toBe(G.flash);
     expect(respuesta.texto).toBe('respuesta de gemini');
-    // Costo según la tabla de precios del modelo resuelto (1000 entrada + 500 salida)
-    expect(costoUsd).toBeCloseTo(estimarCostoUsd('gemini', esperado, 1000, 500), 10);
+    // 1000 entrada × 0.30 + 500 salida × 2.50 por millón
+    expect(costoUsd).toBeCloseTo(0.0003 + 0.00125, 10);
     expect(registros).toHaveLength(1);
-    expect(registros[0]).toMatchObject({ agente: 'director', proveedor: 'gemini', modelo: esperado, tokensEntrada: 1000, tokensSalida: 500, costoEstimadoUsd: costoUsd });
+    expect(registros[0]).toMatchObject({ agente: 'director', proveedor: 'gemini', modelo: G.flash, tokensEntrada: 1000, tokensSalida: 500, costoEstimadoUsd: costoUsd });
   });
 
   it('re-enruta a Gemini (mismo nivel) cuando hay video y el proveedor no lo soporta', async () => {
@@ -217,73 +202,11 @@ describe('Router.generar', () => {
     expect(respuesta.proveedor).toBe('gemini');
   });
 
-  it('corta una llamada que no responde a tiempo, reintenta y cae a Gemini', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
-    vi.stubEnv('MOTOR_ESTILISMO', 'claude:claude-sonnet-5-5');
-    const { r, gemini, claude } = nuevoRouter();
-    // Claude "se cuelga": solo termina cuando la señal se aborta (como hace un SDK real).
-    claude.generar = async (modelo, opciones) => {
-      claude.llamadas.push({ modelo, opciones });
-      await new Promise<void>((_, rechazar) => opciones.senal?.addEventListener('abort', () => rechazar(new ErrorProveedor('cancelada', 'claude', false))));
-      throw new Error('inalcanzable');
-    };
-    const limites = await import('../config/limites.js');
-    vi.spyOn(limites, 'leerLimites').mockReturnValue({ ...limites.leerLimites(), segundosMaxPorLlamadaIA: 0.02 });
-
-    const { respuesta } = await r.generar('estilismo', opcionesBase);
-    expect(claude.llamadas).toHaveLength(2);
-    expect(gemini.llamadas).toHaveLength(1);
-    expect(respuesta.proveedor).toBe('gemini');
-    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('no respondió en 0.02 s'));
-  });
-
-  it('si un modelo de Gemini falla dos veces, prueba una vez con el modelo de respaldo de otro nivel', async () => {
-    vi.stubEnv('MOTOR_DIRECTOR', 'gemini:gemini-modelo-saturado'); // nivel flash por defecto
-    const { r, gemini } = nuevoRouterSoloGemini();
+  it('si Gemini falla dos veces, propaga el error (no hay a quién caer)', async () => {
+    const { r, gemini } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
-    const { respuesta } = await r.generar('director', opcionesBase);
-    expect(gemini.llamadas.map((l) => l.modelo)).toEqual(['gemini-modelo-saturado', 'gemini-modelo-saturado', G.lite]);
-    expect(respuesta.modelo).toBe(G.lite);
-  });
-
-  it('si el modelo de respaldo es el mismo que el saturado, no lo repite: propaga el error', async () => {
-    vi.stubEnv('MOTOR_DIRECTOR', `gemini:${G.lite}`); // en modelos.json flash y lite pueden coincidir
-    const { r, gemini } = nuevoRouterSoloGemini();
-    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
-    if (G.flash === G.lite) {
-      await expect(r.generar('director', opcionesBase)).rejects.toBeInstanceOf(ErrorProveedor);
-      expect(gemini.llamadas).toHaveLength(2);
-    }
-  });
-
-  it('si Gemini falla dos veces y hay llave de Claude, cae a Claude al mismo nivel', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
-    vi.stubEnv('MOTOR_GUARDARROPA', 'gemini:flash');
-    const { r, gemini, claude } = nuevoRouter();
-    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
-    const { respuesta } = await r.generar('guardarropa', opcionesBase);
-    expect(gemini.llamadas).toHaveLength(2);
-    expect(claude.llamadas.map((l) => l.modelo)).toEqual([cargarConfigModelos().claude.flash]);
-    expect(respuesta.proveedor).toBe('claude');
-  });
-
-  it('con video no cae a Claude aunque haya llave: usa el respaldo de Gemini', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
-    vi.stubEnv('MOTOR_GUARDARROPA', 'gemini:gemini-modelo-saturado');
-    const { r, gemini, claude } = nuevoRouter();
-    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
-    const { respuesta } = await r.generar('guardarropa', opcionesConVideo);
-    expect(claude.llamadas).toHaveLength(0);
-    expect(gemini.llamadas.map((l) => l.modelo)).toEqual(['gemini-modelo-saturado', 'gemini-modelo-saturado', G.lite]);
-    expect(respuesta.proveedor).toBe('gemini');
-  });
-
-  it('si también falla el modelo de respaldo de Gemini, propaga el error', async () => {
-    vi.stubEnv('MOTOR_DIRECTOR', 'gemini:gemini-modelo-saturado');
-    const { r, gemini } = nuevoRouterSoloGemini();
-    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
     await expect(r.generar('director', opcionesBase)).rejects.toBeInstanceOf(ErrorProveedor);
-    expect(gemini.llamadas).toHaveLength(3);
+    expect(gemini.llamadas).toHaveLength(2);
   });
 
   it('en modo simulado responde sin proveedores reales', async () => {
@@ -322,9 +245,7 @@ describe('validarModelos', () => {
 
     const resultado = await validarModelos(r);
     const porAgente = Object.fromEntries(resultado.map((x) => [x.agente, x]));
-    // director está en Claude lite (Haiku) con llave presente; guardarropa sigue en Gemini flash.
-    expect(porAgente.director).toMatchObject({ proveedor: 'claude', modelo: 'claude-haiku-4-5', valido: true });
-    expect(porAgente.guardarropa).toMatchObject({ proveedor: 'gemini', modelo: G.flash, valido: true });
+    expect(porAgente.director).toMatchObject({ proveedor: 'gemini', modelo: G.flash, valido: true });
     expect(porAgente.cuidado).toMatchObject({ proveedor: 'gemini', modelo: G.pro, valido: false });
     expect(porAgente.estilismo).toMatchObject({ proveedor: 'claude', modelo: 'claude-sonnet-5-5', valido: true });
   });

@@ -40,7 +40,6 @@ const PREFIJO_ID_LOCAL = 'llamada-';
 
 // ------------------------------------------------------------------ mapeo puro (probado en mapeo.test.ts)
 
-/** Firma que Google documenta para llamadas a herramienta no generadas por Gemini (salta la validación). */
 export const FIRMA_OMITIR_VALIDACION = 'skip_thought_signature_validator';
 
 /** Convierte el historial neutro a `Content[]` de Gemini. */
@@ -62,8 +61,6 @@ function aParteGemini(parte: MensajeModelo['partes'][number]): Part {
       const functionCall: FunctionCall = { name: parte.nombre, args: parte.argumentos };
       // Solo reenviamos el id si lo emitió Gemini; los ids locales (`llamada-N`) no existen para la API.
       if (!parte.idLlamada.startsWith(PREFIJO_ID_LOCAL)) functionCall.id = parte.idLlamada;
-      // Gemini 3 exige devolver la firma de pensamiento que acompañó a la llamada. Si la llamada la
-      // generó otro motor (Claude, simulado), se usa la firma de omisión que documenta Google.
       return { functionCall, thoughtSignature: parte.firma ?? FIRMA_OMITIR_VALIDACION };
     }
     case 'resultado-herramienta': {

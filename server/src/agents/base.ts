@@ -80,7 +80,6 @@ export interface OpcionesEjecutar {
   onTexto?: (delta: string) => void;
   /** Se llama cada vez que el modelo pide una herramienta (para eventos de progreso). */
   onHerramienta?: (llamada: ParteLlamadaHerramienta) => void;
-  /** Se llama al empezar cada vuelta después de la primera (el texto emitido antes era provisional). */
   onNuevaVuelta?: () => void;
   senal?: AbortSignal;
 }

@@ -1,53 +1,25 @@
 {
-  "_comentario": "Qué motor y modelo usa cada agente. 'proveedor': gemini | claude. 'nivel': lite | flash | pro (se traduce al nombre real del modelo según el proveedor). Se puede sobrescribir con variables MOTOR_<AGENTE>=proveedor:modelo. Si falta la llave del proveedor, cae al otro. La conversación (director, estilismo, cuidado, probador) va en Claude Haiku por rapidez y estabilidad; las fotos (guardarropa), los textos largos (planificación, compras) y la revisión (calidad) van en Gemini.",
+  "_comentario": "Qué motor y modelo usa cada agente. 'proveedor': gemini | claude. 'nivel' para gemini: lite | flash | pro (se traduce al nombre real del modelo en gemini.ts). Para claude se escribe el ID exacto del modelo. Se puede sobrescribir con variables MOTOR_<AGENTE>=proveedor:modelo. Si falta la llave del proveedor, cae a Gemini.",
   "gemini": {
     "_comentario": "Nombres reales de los modelos por nivel. Se validan al arrancar y en `npm run smoke`. Si Google publica versiones nuevas, se cambian aquí.",
     "lite": "gemini-3.1-flash-lite",
     "flash": "gemini-3.1-flash-lite",
-    "pro": "gemini-3.8-flash",
-    "_temporal": "30/09/2026: gemini-3.8-flash tarda 9-29 s por respuesta (saturado) y gemini-3.1-pro-preview devuelve 429 'cuota excedida' en este proyecto. Mientras dure, flash usa el lite (rápido y estable) y pro usa 3.8-flash. Cuando Flash se normalice: flash=gemini-3.8-flash, pro=gemini-3.1-pro-preview (si el proyecto ya tiene cupo)."
+    "pro": "gemini-3.8-flash"
   },
   "claude": {
-    "_comentario": "Modelos de Claude por nivel. lite = Haiku (rápido y barato, ideal para conversar), flash = Sonnet, pro = Opus.",
+    "_comentario": "Modelos disponibles de Claude por nivel, por si algún agente se cambia a Claude.",
     "lite": "claude-haiku-4-5",
     "flash": "claude-sonnet-5-5",
     "pro": "claude-opus-5-5"
   },
   "agentes": {
-    "director": {
-      "proveedor": "claude",
-      "nivel": "lite"
-    },
-    "guardarropa": {
-      "proveedor": "gemini",
-      "nivel": "flash"
-    },
-    "estilismo": {
-      "proveedor": "claude",
-      "nivel": "lite"
-    },
-    "planificacion": {
-      "proveedor": "gemini",
-      "nivel": "pro",
-      "nivelDiario": "lite"
-    },
-    "cuidado": {
-      "proveedor": "claude",
-      "nivel": "lite"
-    },
-    "compras": {
-      "proveedor": "gemini",
-      "nivel": "pro",
-      "nivelBusqueda": "flash"
-    },
-    "probador": {
-      "proveedor": "claude",
-      "nivel": "lite"
-    },
-    "calidad": {
-      "proveedor": "gemini",
-      "nivel": "flash",
-      "encendido": true
-    }
+    "director": { "proveedor": "claude", "nivel": "lite" },
+    "guardarropa": { "proveedor": "gemini", "nivel": "flash" },
+    "estilismo": { "proveedor": "claude", "nivel": "lite" },
+    "planificacion": { "proveedor": "gemini", "nivel": "pro", "nivelDiario": "lite" },
+    "cuidado": { "proveedor": "claude", "nivel": "lite" },
+    "compras": { "proveedor": "gemini", "nivel": "pro", "nivelBusqueda": "flash" },
+    "probador": { "proveedor": "claude", "nivel": "lite" },
+    "calidad": { "proveedor": "gemini", "nivel": "flash", "encendido": true }
   }
 }

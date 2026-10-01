@@ -121,11 +121,9 @@ export function db(): Firestore {
   const dbId = baseDeDatosId();
   const instancia = dbId ? getFirestore(a, dbId) : getFirestore(a);
   try {
-    // Firestore rechaza documentos con campos `undefined` (p. ej. un mensaje sin adjuntos). Con esto
-    // los ignora en vez de fallar el guardado. Solo puede llamarse antes del primer uso.
     instancia.settings({ ignoreUndefinedProperties: true });
   } catch {
-    /* ya estaba inicializada: se usa tal cual */
+    /* ya estaba inicializada */
   }
   firestoreCache = instancia;
   return instancia;
