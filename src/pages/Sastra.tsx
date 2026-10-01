@@ -9,11 +9,12 @@ import { api, chatStream } from '@/lib/api';
 import { prepararArchivo, urlDeAdjunto } from '@/lib/imagenes';
 import { useSesion } from '@/lib/sesion';
 import { relativo } from '@/lib/fechas';
-import { fraseParticiparon, fraseTrabajando, parrafos } from '@/lib/chat';
+import { fraseParticiparon, fraseTrabajando } from '@/lib/chat';
 import { Lockup } from '@/components/Marca';
 import { Hilo, IconoCamara, IconoCerrar, IconoLista } from '@/components/Iconos';
 import { Cargando } from '@/components/Cargando';
 import { Aviso } from '@/components/Aviso';
+import { Texto } from '@/components/Texto';
 
 type MensajeLocal = Mensaje & { enCurso?: boolean };
 type ResumenConversacion = Pick<Conversacion, 'id' | 'titulo' | 'actualizadaEn'>;
@@ -285,11 +286,7 @@ export function Sastra() {
             ) : (
               <div key={m.id} className="flex flex-col gap-2">
                 <span className="serif italic text-[15px] text-[var(--texto-2)]">Sastra</span>
-                {parrafos(m.texto).map((p, i, arr) => (
-                  <p key={i} className={`m-0 whitespace-pre-line ${m.enCurso && i === arr.length - 1 ? 'escribiendo' : ''}`}>
-                    {p}
-                  </p>
-                ))}
+                {m.texto ? <Texto texto={m.texto} escribiendo={m.enCurso} /> : null}
                 {m.enCurso && !m.texto && !fraseTrab ? <p className="m-0 escribiendo text-[var(--texto-2)]"></p> : null}
                 {!m.enCurso && fraseParticiparon(m.departamentos) ? (
                   <div className="flex items-center gap-[10px] pt-1 text-[12px] text-[var(--texto-2)]">
