@@ -64,10 +64,11 @@ Gemini al mismo nivel automáticamente y lo anota en los registros. La búsqueda
 
 ## Cómo viene configurado (desde el 30/09/2026)
 
-- **Conversación en Claude Haiku** (`director`, `estilismo`, `cuidado`, `probador`, nivel `lite`): responde
-  en 1 o 2 segundos, es estable y maneja bien las herramientas. Cuesta unos $2 a $5 al mes por persona activa.
-- **Gemini** para lo que Claude no hace o no hace falta pagar: `guardarropa` (fotos), `planificacion` y
-  `compras` (textos largos en segundo plano) y `calidad` (revisión).
+- **Conversación y fotos en Claude Haiku** (`director`, `estilismo`, `cuidado`, `probador`, `guardarropa`,
+  nivel `lite`): responde en 1 o 2 segundos, es estable, lee fotos y maneja bien las herramientas. Cuesta
+  unos $2 a $5 al mes por persona activa. El video sigue yendo a Gemini automáticamente.
+- **Gemini** para lo que no hace falta pagar: `planificacion` y `compras` (textos largos en segundo
+  plano) y `calidad` (revisión).
 - **Dos empresas detrás**: si Gemini se satura, SASTRA cae a Claude al mismo nivel (salvo con video); si
   Claude falla o no hay llave, cae a Gemini. Sin `ANTHROPIC_API_KEY`, todo funciona en Gemini.
 

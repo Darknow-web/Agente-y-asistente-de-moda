@@ -99,7 +99,7 @@ afterEach(() => {
 describe('resolverMotor', () => {
   it('usa modelos.json por defecto y traduce el nivel al modelo real', () => {
     const config = cargarConfigModelos();
-    expect(resolverMotor('guardarropa')).toEqual({ proveedor: 'gemini', modelo: config.gemini.flash, nivel: 'flash' });
+    expect(resolverMotor('calidad')).toEqual({ proveedor: 'gemini', modelo: config.gemini.flash, nivel: 'flash' });
     // La conversación va en Claude (lite = Haiku); sin ANTHROPIC_API_KEY cae a Gemini al mismo nivel.
     expect(config.agentes.director).toMatchObject({ proveedor: 'claude', nivel: 'lite' });
     expect(resolverMotor('director')).toEqual({ proveedor: 'gemini', modelo: config.gemini.lite, nivel: 'lite' });
@@ -324,7 +324,7 @@ describe('validarModelos', () => {
     const porAgente = Object.fromEntries(resultado.map((x) => [x.agente, x]));
     // director está en Claude lite (Haiku) con llave presente; guardarropa sigue en Gemini flash.
     expect(porAgente.director).toMatchObject({ proveedor: 'claude', modelo: 'claude-haiku-4-5', valido: true });
-    expect(porAgente.guardarropa).toMatchObject({ proveedor: 'gemini', modelo: G.flash, valido: true });
+    expect(porAgente.calidad).toMatchObject({ proveedor: 'gemini', modelo: G.flash, valido: true });
     expect(porAgente.cuidado).toMatchObject({ proveedor: 'gemini', modelo: G.pro, valido: false });
     expect(porAgente.estilismo).toMatchObject({ proveedor: 'claude', modelo: 'claude-sonnet-5-5', valido: true });
   });

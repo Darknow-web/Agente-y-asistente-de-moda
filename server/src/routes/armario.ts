@@ -4,7 +4,7 @@
  */
 import { Router as ExpressRouter } from 'express';
 import type { Deseo, Prenda } from '@shared/types.js';
-import type { PrendaDormida, ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespResumenArmario } from '@shared/api.js';
+import type { ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespResumenArmario } from '@shared/api.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
   actualizarPrenda,
@@ -24,7 +24,7 @@ import {
 import { borrarFotoPrenda, subirFotoPrenda } from '../data/storage.js';
 import { asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
 import { construirContexto } from '../memory/construir.js';
-import { diasDesde } from '../memory/contexto.js';
+import { calcularResumenArmario } from '../data/resumen-armario.js';
 import { catalogarFoto } from '../agents/guardarropa/index.js';
 import { formasDeUso } from '../agents/estilismo/index.js';
 import { debeRevisar, revisarConCalidad } from '../agents/calidad/index.js';
@@ -34,33 +34,10 @@ export const rutasArmario = ExpressRouter();
 // Solo a las rutas de este módulo (un `use` sin ruta afectaría a todo /api)
 rutasArmario.use(['/prendas', '/deseos', '/armario', '/ajustes'], requiereSesion, requiereInvitado);
 
-/** Días sin uso de una prenda (desde el último uso o, si nunca se usó, desde que entró). */
-export function diasSinUso(p: Prenda, ultimoUso?: string): number {
-  return diasDesde(ultimoUso ?? p.ultimoUso ?? p.creadaEn) ?? 0;
-}
-
-const DIAS_DORMIDA = 60;
-
-/** Qué se usa y qué duerme: base de "ropa dormida", "estreno" y "valor sin uso". */
+/** Resumen del armario con el último uso real de cada prenda (ver data/resumen-armario.ts). */
 export async function resumenArmario(uid: string, prendas: Prenda[], moneda = 'PEN'): Promise<RespResumenArmario> {
   const ultimos = await ultimoUsoPorPrenda(uid).catch(() => new Map<string, string>());
-  const compacta = (p: Prenda, dias: number): PrendaDormida => ({ id: p.id, nombre: p.nombre, dias, precio: p.precio, fotoUrl: p.fotoMiniUrl ?? p.fotoUrl });
-  const dormidas: PrendaDormida[] = [];
-  const sinEstrenar: PrendaDormida[] = [];
-  let usadas30 = 0;
-  for (const p of prendas) {
-    if (p.estado === 'guardada') continue;
-    const ultimo = ultimos.get(p.id) ?? p.ultimoUso;
-    const usada = Boolean(ultimo) || (p.usosTotales ?? 0) > 0;
-    const dias = diasSinUso(p, ultimo);
-    if (ultimo && dias <= 30) usadas30++;
-    if (!usada && (diasDesde(p.creadaEn) ?? 0) < DIAS_DORMIDA) sinEstrenar.push(compacta(p, diasDesde(p.creadaEn) ?? 0));
-    else if (dias >= DIAS_DORMIDA) dormidas.push(compacta(p, dias));
-  }
-  dormidas.sort((a, b) => b.dias - a.dias);
-  sinEstrenar.sort((a, b) => b.dias - a.dias);
-  const valorSinUso = [...dormidas, ...sinEstrenar].reduce((s, p) => s + (p.precio ?? 0), 0);
-  return { totalPrendas: prendas.length, usadasUltimos30: usadas30, dormidas, sinEstrenar, valorSinUso: Math.round(valorSinUso), moneda };
+  return calcularResumenArmario(prendas, ultimos, moneda);
 }
 
 rutasArmario.get(

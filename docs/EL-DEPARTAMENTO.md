@@ -65,6 +65,26 @@ publicación). No hace falta programar.
 
 En la app, mientras esto ocurre, aparece una línea discreta: "Estilismo y Cuidado están trabajando".
 
+## Lo que el departamento hace sin que nadie le hable
+
+La idea de SASTRA no es un chat: es un equipo que trabaja aunque la persona no entre. Esto ocurre solo,
+con las tareas programadas de la guía de despliegue (Paso 7), y queda anotado en **Avisos › Diario del
+departamento**:
+
+| Cuándo | Quién | Qué hace |
+|---|---|---|
+| Cada mañana | Estilismo o Planificación | Prepara el look del día con el clima y la rutina y lo avisa. |
+| Cada mañana | Estilismo | Si una prenda nueva lleva 30 días sin estrenar, propone una forma de ponérsela. |
+| Lunes | Estilismo | Señala la ropa con más de dos meses sin uso y cuánto vale la que duerme. |
+| Cada mañana | Compras | A la semana de guardar un deseo, vuelve a preguntar si sigue queriéndolo y con qué lo combinaría. |
+| Cada tarde | Cuidado | Revisa qué prendas llegaron a su máximo de usos y toca lavar. |
+| Domingo | Planificación | Planifica la semana entera, con alternativas por día. |
+
+Y lo que necesita saber de la persona lo consigue sin formularios: una bienvenida de cinco preguntas, una
+pregunta al día en Hoy, lo que aprende de cada conversación, lo que la persona registra ("me quedó
+ajustada") y lo que ve en el probador. Cuando aconseja sobre talla o calce, dice con cuánta confianza lo
+hace y en qué dato se apoya.
+
 ## El propósito de la casa
 
 `server/src/config/empresa.md` es el texto que todos los agentes leen primero: misión, cómo trabajamos,

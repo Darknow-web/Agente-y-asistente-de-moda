@@ -293,14 +293,11 @@ export async function marcarAvisoLeido(uid: string, id: string): Promise<Aviso |
 
 /** Evita duplicar el mismo aviso (por tipo) en el mismo día. */
 export async function existeAvisoHoy(uid: string, tipo: Aviso['tipo']): Promise<boolean> {
+  // Solo un rango por `creadoEn` (índice automático); el tipo se filtra en memoria para no exigir
+  // un índice compuesto que haya que desplegar aparte.
   const hoy = fechaLocal();
-  const snap = await usuario(uid)
-    .collection('avisos')
-    .where('tipo', '==', tipo)
-    .where('creadoEn', '>=', `${hoy}T00:00:00.000Z`)
-    .limit(1)
-    .get();
-  return !snap.empty;
+  const snap = await usuario(uid).collection('avisos').where('creadoEn', '>=', `${hoy}T00:00:00.000Z`).limit(50).get();
+  return snap.docs.some((d) => (d.data() as Aviso).tipo === tipo);
 }
 
 // ---------------------------------------------------------------- uso y contadores

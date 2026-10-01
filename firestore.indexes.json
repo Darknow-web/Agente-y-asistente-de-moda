@@ -4,18 +4,49 @@
       "collectionGroup": "usos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "prendaId", "order": "ASCENDING" },
-        { "fieldPath": "fecha", "order": "DESCENDING" }
+        {
+          "fieldPath": "prendaId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "avisos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "leido", "order": "ASCENDING" },
-        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+        {
+          "fieldPath": "leido",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "creadoEn",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "uso",
+      "fieldPath": "fecha",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
 }

@@ -1,5 +1,5 @@
 {
-  "_comentario": "Qué motor y modelo usa cada agente. 'proveedor': gemini | claude. 'nivel': lite | flash | pro (se traduce al nombre real del modelo según el proveedor). Se puede sobrescribir con variables MOTOR_<AGENTE>=proveedor:modelo. Si falta la llave del proveedor, cae al otro. La conversación (director, estilismo, cuidado, probador) va en Claude Haiku por rapidez y estabilidad; las fotos (guardarropa), los textos largos (planificación, compras) y la revisión (calidad) van en Gemini.",
+  "_comentario": "Qué motor y modelo usa cada agente. 'proveedor': gemini | claude. 'nivel': lite | flash | pro (se traduce al nombre real del modelo según el proveedor). Se puede sobrescribir con variables MOTOR_<AGENTE>=proveedor:modelo. Si falta la llave del proveedor, cae al otro. La conversación (director, estilismo, cuidado, probador) va en Claude Haiku por rapidez y estabilidad; guardarropa también va en Claude Haiku (lee fotos; el video se reenvía solo a Gemini); los textos largos (planificación, compras) y la revisión (calidad) van en Gemini.",
   "gemini": {
     "_comentario": "Nombres reales de los modelos por nivel. Se validan al arrancar y en `npm run smoke`. Si Google publica versiones nuevas, se cambian aquí.",
     "lite": "gemini-3.1-flash-lite",
@@ -19,8 +19,8 @@
       "nivel": "lite"
     },
     "guardarropa": {
-      "proveedor": "gemini",
-      "nivel": "flash"
+      "proveedor": "claude",
+      "nivel": "lite"
     },
     "estilismo": {
       "proveedor": "claude",

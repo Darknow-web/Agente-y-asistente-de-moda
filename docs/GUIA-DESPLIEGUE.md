@@ -1,101 +1,147 @@
 # Guía de despliegue (paso a paso, sin tecnicismos)
 
-Esta guía te lleva desde cero hasta tener SASTRA funcionando en internet para tus primeras 3 o 4 personas.
-Tiempo estimado: 45 minutos la primera vez.
+Esta guía te lleva desde cero hasta tener SASTRA funcionando en internet para tus primeras personas,
+con el departamento trabajando solo (look del día, plan semanal, lavado, estrenos, deseos) y avisos en el
+móvil. Tiempo estimado: 45 minutos la primera vez.
 
-## Antes de empezar: qué vas a necesitar
+Hay dos caminos y los dos usan el mismo código:
 
-1. Una cuenta de Google (la misma de AI Studio).
-2. Una tarjeta para activar facturación en Google Cloud. **No se cobra nada si te mantienes en el nivel
-   gratuito de Cloud Run y en el uso previsto de Gemini** (2 a 7 dólares al mes con 4 personas activas).
-3. Este repositorio en GitHub.
+- **Camino A · Google AI Studio** (el que usamos hasta ahora): importas el repositorio, pulsas Publish y
+  AI Studio lo despliega en Cloud Run. Ventaja: todo desde una pantalla. Desventaja: AI Studio no trae los
+  cambios nuevos de GitHub por sí solo; cada arreglo se pega como parche o se vuelve a importar.
+- **Camino B · Cloud Run directo desde GitHub**: cada cambio que llega a la rama se publica solo en uno o
+  dos minutos. Es el camino cuando ya tengas usuarios de verdad.
 
-## Paso 1 · Crear la llave de Gemini (tu motor de IA)
+## Antes de empezar
 
-1. Entra en [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-2. Pulsa **Create API key** y elige (o crea) un proyecto de Google Cloud. Anota el **ID del proyecto**.
-3. Copia la llave. Empieza por `AIza…`. Guárdala en un lugar seguro: es la variable `GEMINI_API_KEY`.
-4. Activa facturación en ese proyecto: [console.cloud.google.com/billing](https://console.cloud.google.com/billing)
-   › vincular cuenta de facturación al proyecto. Con esto tus datos dejan de usarse para entrenar modelos y
-   desaparecen los topes diarios del nivel gratuito.
-5. Crea una **alerta de presupuesto**: Facturación › Presupuestos y alertas › Crear presupuesto › 10 USD al
-   mes › avisos al 50 %, 90 % y 100 %. Te llegará un correo si algo se dispara.
+1. Una cuenta de Google (la misma de AI Studio) con un proyecto de Google Cloud con **facturación activa**
+   y saldo cargado para la API de Gemini (es prepago). Hoy: `gen-lang-client-0884703707`.
+2. Una llave de Anthropic (console.anthropic.com) con unos dólares de saldo: la conversación va en Claude.
+   Sin ella, todo funciona en Gemini.
+3. Este repositorio en GitHub, rama `claude/fashion-ai-assistant-agent-bbfduf` (o la que uses).
 
-## Paso 2 · Abrir el proyecto en Google AI Studio
+## Camino A · Google AI Studio
 
-1. Entra en [aistudio.google.com](https://aistudio.google.com) › **Build**.
-2. Importa este repositorio desde GitHub (si tu versión de AI Studio no muestra la opción de importar, salta al
-   **Camino B** más abajo).
-3. En **Settings › Environment variables** añade:
-   - `GEMINI_API_KEY` = tu llave.
-   - `ADMIN_EMAILS` = tu correo de Google (para entrar siempre y administrar invitados).
-   - `JOBS_SECRET` = un texto largo y aleatorio (por ejemplo, 40 letras y números). Sirve para las tareas
-     automáticas.
-   - `MOTOR_MODO` = `real`.
+### Paso 1 · Importar
 
-## Paso 3 · Vincular Firestore y el acceso con Google
+1. Entra en [aistudio.google.com](https://aistudio.google.com) › **Build** › importar desde GitHub › elige
+   este repositorio y la rama.
+2. AI Studio hace una "migración" automática (ajusta el arranque para su vista previa). Déjala terminar.
+   Si pregunta por conflictos, mira la sección **Resolve conflicts** al final.
 
-Sigue [VINCULAR-FIRESTORE.md](VINCULAR-FIRESTORE.md). En resumen: pega el mensaje al agente de AI Studio (o
-usa Settings › Integrations › Firebase), activa **Google** como método de acceso en la consola de Firebase y
-comprueba en **Diagnóstico** que Firestore y Storage estén en "ok".
+### Paso 2 · Secrets (variables del servidor)
 
-## Paso 4 · Publicar
+En la pestaña **Secrets** rellena solo esto; el resto déjalo vacío:
 
-1. En AI Studio pulsa **Deploy**. Elige el mismo proyecto de Google Cloud del paso 1.
-2. Espera a que termine: te dará una dirección tipo `https://sastra-xxxx.run.app` (o una `*.ai.studio`).
-3. Añade esa dirección en la consola de Firebase › Authentication › Settings › **Authorized domains**.
-4. Abre la dirección, entra con tu Google y ve a **Perfil › Diagnóstico**. Todo en verde.
+| Variable | Valor |
+|---|---|
+| `ADMIN_EMAILS` | tu correo de Google (entras siempre y administras invitados) |
+| `JOBS_SECRET` | un texto largo y aleatorio; lo usarán las tareas programadas |
+| `ANTHROPIC_API_KEY` | tu llave de Anthropic (opcional; sin ella, todo en Gemini) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | para avisos en el móvil; se generan con `npm run push:claves` (ver Paso 6). Opcionales |
+| `MOTOR_MODO` | `real` |
 
-## Paso 5 · Invitar a tus primeras personas
+La llave de Gemini la pone AI Studio por su cuenta (selector de API key). **No rellenes** las variables
+`FIREBASE_*` ni `VITE_FIREBASE_*`: las escribe la vinculación de Firebase en `firebase-applet-config.json`
+y, si las rellenas con valores viejos, mandan sobre el archivo.
 
-En la app, **Invitados** (solo lo ves tú como administrador): escribe el correo de Google de cada persona y
-listo. Solo quien esté en la lista puede usar SASTRA. Cada persona tiene su armario privado.
+### Paso 3 · Vincular Firestore y el acceso con Google
 
-## Paso 6 · Activar la autonomía (avisos automáticos)
+**Settings › Integrations › Firebase Firestore & Auth** › "Select existing project" › elige tu proyecto.
+La integración escribe `firebase-applet-config.json` en la raíz (versionado a propósito) y la app lo lee.
+Luego, en la consola de Firebase: **Authentication › Sign-in method › Google › Habilitar**. Detalles y
+problemas frecuentes en [VINCULAR-FIRESTORE.md](VINCULAR-FIRESTORE.md).
 
-Para que Sastra proponga el look cada mañana, planifique la semana el domingo y avise cuándo lavar:
+Las reglas de seguridad (`firestore.rules`, `storage.rules`) y los índices (`firestore.indexes.json`)
+están en el repositorio. Si la integración no los despliega, hazlo una vez con la CLI de Firebase:
+`firebase deploy --only firestore:rules,firestore:indexes,storage`.
+
+### Paso 4 · Publicar
+
+1. Pulsa **Publish**. Elige el mismo proyecto de Google Cloud.
+2. Copia la dirección que te da (`https://…run.app` o `…ai.studio`).
+3. En Firebase › Authentication › Settings › **Authorized domains**, añade ese dominio (y el de la vista
+   previa si quieres probar desde AI Studio). Sin esto, "Entrar con Google" da `auth/unauthorized-domain` y la
+   app te dice exactamente qué dominio falta.
+4. Abre la app, entra con tu Google, pasa la bienvenida de cinco preguntas y ve a **Perfil › Diagnóstico**:
+   Firestore, Storage y los motores en verde.
+
+### Paso 5 · Invitar
+
+En **Invitados** (solo lo ves tú): escribe el correo de Google de cada persona. Solo quien esté en la lista
+puede usar SASTRA; cada persona tiene su armario privado.
+
+### Paso 6 · Avisos en el móvil (notificaciones)
+
+1. En tu computadora, dentro del repositorio: `npm run push:claves`. Imprime tres líneas
+   (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Pégalas en Secrets, con tu correo en
+   `VAPID_SUBJECT` (formato `mailto:tu-correo`). Vuelve a publicar.
+2. Cada persona activa los avisos desde **Perfil › Avisos en este dispositivo**. En iPhone hace falta
+   añadir la app a la pantalla de inicio primero (Compartir › Añadir a pantalla de inicio).
+3. Mientras no haya claves, los avisos solo se ven dentro de la app, en **Avisos**.
+
+### Paso 7 · El departamento trabajando solo (tareas programadas)
+
+Para que Sastra proponga el look cada mañana, planifique la semana el domingo, avise qué lavar, empuje los
+estrenos pendientes, señale la ropa dormida y vuelva a preguntar por los deseos a la semana:
 
 1. Entra en [console.cloud.google.com/cloudscheduler](https://console.cloud.google.com/cloudscheduler) y
-   pulsa **Crear trabajo** tres veces con estos datos (cambia la dirección por la tuya y el secreto por tu
-   `JOBS_SECRET`):
+   crea **cuatro** trabajos (método POST, cabecera `x-jobs-secret` con tu `JOBS_SECRET`, zona
+   `America/Lima`, cambia la dirección por la tuya):
 
-| Nombre | Frecuencia | Zona horaria | URL (método POST) | Cabecera |
-|---|---|---|---|---|
-| sastra-look-del-dia | `30 6 * * *` | America/Lima | `https://TU-APP.run.app/api/jobs/look-del-dia` | `x-jobs-secret: TU_SECRETO` |
-| sastra-plan-semanal | `0 20 * * 0` | America/Lima | `https://TU-APP.run.app/api/jobs/plan-semanal` | `x-jobs-secret: TU_SECRETO` |
-| sastra-lavado | `0 19 * * *` | America/Lima | `https://TU-APP.run.app/api/jobs/recordatorios-lavado` | `x-jobs-secret: TU_SECRETO` |
+| Nombre | Frecuencia | URL |
+|---|---|---|
+| sastra-look-del-dia | `30 6 * * *` | `https://TU-APP/api/jobs/look-del-dia` |
+| sastra-diario | `0 8 * * *` | `https://TU-APP/api/jobs/diario` |
+| sastra-lavado | `0 19 * * *` | `https://TU-APP/api/jobs/recordatorios-lavado` |
+| sastra-plan-semanal | `0 20 * * 0` | `https://TU-APP/api/jobs/plan-semanal` |
 
-2. Los avisos aparecen en la app, en **Avisos**. Mientras no configures esto, la app calcula el look del día
-   cuando alguien la abre, sin costo extra.
+2. Lo que el equipo hace solo queda anotado en **Avisos › Diario del departamento**.
+3. Mientras no configures esto, la app calcula el look del día cuando alguien la abre, sin costo extra, y
+   el resto (estrenos, ropa dormida, pregunta del día) se ve igual en Hoy.
 
-## Camino B · Publicar directo en Cloud Run desde GitHub
+### Cómo aplicar arreglos después
 
-Si AI Studio no deja importar el repositorio:
+AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
+
+- **Parche**: pega en el chat de AI Studio las instrucciones exactas del cambio (así lo hemos hecho).
+- **Reimportar**: crea una app nueva desde GitHub, repite Secrets (Paso 2) y la vinculación de Firebase
+  (Paso 3). Como `firebase-applet-config.json` ya viaja con el código, la app arranca conectada al mismo
+  proyecto; solo hay que volver a elegirlo en Integrations para que AI Studio lo reconozca.
+
+## Camino B · Cloud Run directo desde GitHub
 
 1. [console.cloud.google.com/run](https://console.cloud.google.com/run) › **Crear servicio** ›
    "Implementar continuamente desde un repositorio" › conecta GitHub y elige este repositorio y la rama.
-2. Tipo de compilación: **Dockerfile** (está en la raíz).
+2. Tipo de compilación: **Dockerfile** (está en la raíz). Puerto 8080.
 3. Región: `southamerica-west1` (Santiago) o `us-central1`. Permitir invocaciones no autenticadas: **sí**
    (la app tiene su propio acceso con Google).
-4. En **Variables y secretos** añade las mismas del Paso 2 más `FIREBASE_PROJECT_ID` y
-   `FIREBASE_STORAGE_BUCKET`, y las `VITE_FIREBASE_*` (ver VINCULAR-FIRESTORE.md).
-5. En **Seguridad › Cuenta de servicio**, dale a la cuenta los roles **Cloud Datastore User** y
-   **Storage Object Admin** (IAM).
-6. Crear. Cada vez que se suba un cambio a la rama, Cloud Run vuelve a publicar solo.
+4. **Variables y secretos**: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `ADMIN_EMAILS`, `JOBS_SECRET`,
+   `MOTOR_MODO=real` y, si quieres avisos, las tres `VAPID_*`. Firebase se lee de
+   `firebase-applet-config.json`; si el servicio corre en otro proyecto, añade `FIREBASE_PROJECT_ID`,
+   `FIREBASE_STORAGE_BUCKET` y `FIRESTORE_DATABASE_ID`.
+5. **Seguridad › Cuenta de servicio**: roles **Cloud Datastore User** y **Storage Object Admin** (IAM).
+6. Crear. Cada vez que se suba un cambio a la rama, Cloud Run vuelve a publicar solo. Los Pasos 4 a 7 del
+   Camino A aplican igual (dominio autorizado, invitados, notificaciones, tareas programadas).
 
 ## Si algo falla
 
-- **"Falta configurar la llave del motor"**: revisa `GEMINI_API_KEY` en las variables del servicio.
+- **"Falta configurar la llave del motor"**: revisa la llave de Gemini (en AI Studio, el selector de API
+  key; en Cloud Run, `GEMINI_API_KEY`).
+- **"El motor de IA tiene mucha demanda"**: Google saturado. La app reintenta, cambia de modelo y cae a
+  Claude si hay llave. Si pasa seguido, revisa `server/src/config/modelos.json` (ver CAMBIAR-EL-MOTOR.md).
 - **"Tu correo aún no está en la lista de invitados"**: pon tu correo en `ADMIN_EMAILS` o pide que te
   agreguen en Invitados.
 - **Firestore "sin-configurar" o "error"**: sigue VINCULAR-FIRESTORE.md, sección 5.
-- **El botón de Google no abre o da error de dominio**: añade el dominio de la app en Authorized domains.
+- **"Firebase no reconoce esta dirección"**: añade el dominio que indica el aviso en Authorized domains.
+- **La conversación no aparece al volver** o **una prenda no se guarda**: Diagnóstico › Firestore debe
+  estar en "ok"; si está en "error", la cuenta de servicio no tiene permisos (Camino B, punto 5).
+- **Los avisos del móvil no llegan**: faltan las claves VAPID en Secrets, o la persona no los activó en
+  Perfil, o el navegador los bloqueó (en Perfil aparece "Bloqueados en el navegador").
 - **Se agotó el límite de mensajes**: son 60 por persona al día; se cambia en
   `server/src/config/limites.json`.
-- **AI Studio muestra "Resolve conflicts"**: significa que su copia del proyecto y la versión de GitHub
-  difieren. Mira la lista de archivos cambiados (los "Unchanged files" no importan). Si solo aparecen
-  archivos generados o de documentación (`tools/brand/out/`, `docs/`), pulsa **Accept**. Si aparecen
-  `.env`, `firebase-applet-config.json`, `firestore.rules`, `storage.rules` o algo de `src/` o `server/`
-  que no cambiaste tú, pulsa **Cancel** y revisa antes: las reglas y el código del repositorio son la
-  fuente de verdad.
-- **Al refrescar AI Studio te vuelve a pedir vincular Firestore**: sigue VINCULAR-FIRESTORE.md, sección 6.
+- **AI Studio muestra "Resolve conflicts"**: su copia y la de GitHub difieren. Si solo aparecen archivos
+  generados o de documentación, **Accept**. Si aparecen `firebase-applet-config.json`, `package-lock.json`,
+  `firestore.rules`, `storage.rules` o algo de `src/` o `server/` que no cambiaste tú, **Cancel** y revisa:
+  el repositorio es la fuente de verdad.
+- **Al refrescar AI Studio te vuelve a pedir vincular Firestore**: VINCULAR-FIRESTORE.md, sección 6.

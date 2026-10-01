@@ -12,8 +12,13 @@ hablan con una sola voz.
 
 - **Qué es**: una app web (funciona en el celular como una app) donde chateas con Sastra, subes fotos de tu
   ropa y recibes looks, planes semanales, consejos de cuidado y de compras.
-- **Qué cuesta**: la app usa el motor de IA de Google (Gemini) con la llave de tu propia cuenta. Con 4 personas
-  activas, entre 2 y 7 dólares al mes. Ver [docs/COSTOS.md](docs/COSTOS.md).
+- **Para qué sirve de verdad**: que no compres ropa que nunca te pondrás y que uses la que ya tienes.
+  Por eso, además del chat: bienvenida de cinco preguntas, una pregunta al día para conocerte, tres formas
+  de ponerte cada prenda, estreno guiado, ropa dormida con su valor, costo por uso, memoria de cómo te queda
+  la ropa y tallas por marca, índice de compra antes de pagar, lista de deseos con una semana de espera,
+  avisos en el móvil y un diario de lo que el departamento hace solo.
+- **Qué cuesta**: la conversación va en Claude Haiku y el resto en Gemini, con tus propias llaves. Unos 2
+  dólares al mes por persona activa. Ver [docs/COSTOS.md](docs/COSTOS.md).
 - **Cómo se publica**: desde Google AI Studio a Cloud Run. Paso a paso en
   [docs/GUIA-DESPLIEGUE.md](docs/GUIA-DESPLIEGUE.md) y, para la base de datos,
   [docs/VINCULAR-FIRESTORE.md](docs/VINCULAR-FIRESTORE.md).
@@ -44,8 +49,11 @@ server/src/     API Express
   ai/           motor intercambiable: provider.ts (contrato), gemini.ts, claude.ts, simulado.ts, router.ts
   agents/       el departamento: <agente>/prompt.md + conocimiento.md + index.ts
   config/       modelos.json (qué motor usa cada agente) · empresa.md (propósito) · limites.json
-  routes/       chat (SSE), armario, planes, cuenta, salud, jobs
+  routes/       chat (SSE), armario (prendas, resumen, formas, ajustes), planes, cuenta (perfil, pregunta
+                del día, push, avisos), probador (índice de compra), salud, jobs (tareas programadas)
   tools/        armario (function calling), clima (Open-Meteo), busqueda (web)
+  data/         repos (Firestore), resumen-armario (ropa dormida), avisar (aviso + push + diario)
+  util/         push (Web Push), env, errores, ids
 shared/         tipos y contrato de API compartidos
 docs/           guías en español
 ```

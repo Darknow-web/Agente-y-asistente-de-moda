@@ -17,8 +17,13 @@ que se despliega en Cloud Run desde Google AI Studio.
   en la raíz. No las sobrescribas. Si necesitas cambiarlas, edítalas ahí y explica el cambio.
 - El servidor usa `firebase-admin` con las credenciales por defecto de Cloud Run (no requiere archivo de llave).
 - Estructura de datos: `users/{uid}/perfil`, `users/{uid}/prendas`, `users/{uid}/usos`, `users/{uid}/planes`,
-  `users/{uid}/deseos`, `users/{uid}/conversaciones`, `users/{uid}/avisos`, `users/{uid}/uso`,
-  `allowlist/{email}`. Los tipos están en `shared/types.ts`.
+  `users/{uid}/deseos`, `users/{uid}/conversaciones`, `users/{uid}/avisos` (incluye el diario del
+  departamento, tipo `diario`), `users/{uid}/ajustes` (memoria de calce), `users/{uid}/push`
+  (suscripciones a notificaciones), `users/{uid}/uso`, `allowlist/{email}`. Los tipos están en `shared/types.ts`.
+- Las consultas evitan índices compuestos a propósito (filtran en memoria lo que haga falta). Los únicos
+  índices necesarios están en `firestore.indexes.json`.
+- `public/sw.js` es el service worker: solo notificaciones push, no cachea la app. No añadas caché offline sin
+  pedirlo.
 
 ## Llaves y secretos
 
