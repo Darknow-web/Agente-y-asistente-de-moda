@@ -18,6 +18,12 @@ import { rutasJobs } from './routes/jobs.js';
 import { rutasProbador } from './routes/probador.js';
 import { leerLimites } from './config/limites.js';
 
+// Un fallo asíncrono fuera de una ruta (p. ej. credenciales de Firestore) no debe tumbar el servidor:
+// se registra y la ruta correspondiente responderá con error.
+process.on('unhandledRejection', (razon) => {
+  console.error('[sastra] promesa sin manejar:', razon instanceof Error ? razon.message : razon);
+});
+
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
