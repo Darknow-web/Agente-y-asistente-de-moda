@@ -285,13 +285,16 @@ export class Router {
     try {
       respuesta = await this.generarConReintento(motor, opciones);
     } catch (error) {
-      if (!(error instanceof ErrorProveedor) || !error.recuperable || opciones.senal?.aborted) throw error;
-      if (motor.proveedor === 'claude') {
-        // Claude agotó su reintento con un error recuperable → caemos a Gemini al mismo nivel.
+      if (!(error instanceof ErrorProveedor) || opciones.senal?.aborted) throw error;
+      if (motor.proveedor === 'claude' && this.proveedorDisponible('gemini')) {
+        // Claude falló (saturado, llave rechazada, petición inválida…) → Gemini al mismo nivel.
+        // Gemini es la base que siempre está; una llave de Claude mal puesta no debe dejar sin servicio.
         const modeloGemini = modeloDeNivel('gemini', motor.nivel);
-        console.warn(`[router] Claude falló dos veces para "${agente}" (${error.message}); se cae a Gemini (${modeloGemini}).`);
+        console.warn(`[router] Claude falló para "${agente}" (${error.message}); se cae a Gemini (${modeloGemini}).`);
         motor = { proveedor: 'gemini', modelo: modeloGemini, nivel: motor.nivel };
         respuesta = await this.generarConReintento(motor, opciones);
+      } else if (!error.recuperable) {
+        throw error;
       } else if (motor.proveedor === 'gemini' && this.proveedorDisponible('claude') && !tieneVideo(opciones.mensajes)) {
         // Gemini saturado y hay llave de Claude → otra empresa, otra infraestructura, al mismo nivel.
         const modeloClaude = modeloDeNivel('claude', motor.nivel);

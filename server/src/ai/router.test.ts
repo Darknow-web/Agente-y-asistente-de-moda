@@ -278,6 +278,17 @@ describe('Router.generar', () => {
     expect(respuesta.proveedor).toBe('gemini');
   });
 
+  it('si Claude rechaza la llave (error no recuperable), cae a Gemini igual', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-mala');
+    vi.stubEnv('MOTOR_ESTILISMO', 'claude:claude-haiku-4-5');
+    const { r, gemini, claude } = nuevoRouter();
+    claude.fallos = [new ErrorProveedor('Fallo al generar con Claude: authentication_error (HTTP 401)', 'claude', false)];
+    const { respuesta } = await r.generar('estilismo', opcionesBase);
+    expect(claude.llamadas).toHaveLength(1);
+    expect(gemini.llamadas).toHaveLength(1);
+    expect(respuesta.proveedor).toBe('gemini');
+  });
+
   it('si también falla el modelo de respaldo de Gemini, propaga el error', async () => {
     vi.stubEnv('MOTOR_DIRECTOR', 'gemini:gemini-modelo-saturado');
     const { r, gemini } = nuevoRouterSoloGemini();
