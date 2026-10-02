@@ -144,11 +144,34 @@ export function modeloDisponibleEnDisco(): boolean {
   return fs.existsSync(rutaDelModelo());
 }
 
-async function cargarSegmentador(): Promise<Segmentador | null> {
-  if (!modeloDisponibleEnDisco()) {
-    console.warn(`[imagenes] no está el modelo de recorte en ${rutaDelModelo()}; las fotos se guardan sin recortar. Descárgalo con "npm run modelo:recorte".`);
-    return null;
+/**
+ * Si el constructor no dejó el modelo en la imagen (por ejemplo, AI Studio sin nuestro Dockerfile), se descarga
+ * una vez al primer uso. En Cloud Run el disco es memoria, así que cuenta dentro de los 2 GiB del servicio.
+ */
+async function asegurarModelo(): Promise<boolean> {
+  if (modeloDisponibleEnDisco()) return true;
+  const destino = rutaDelModelo();
+  const temporal = `${destino}.parte`;
+  try {
+    console.log(`[imagenes] descargando el modelo de recorte (176 MB) a ${destino}…`);
+    fs.mkdirSync(path.dirname(destino), { recursive: true });
+    const res = await fetch(URL_MODELO, { redirect: 'follow', signal: AbortSignal.timeout(180_000) });
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const { pipeline } = await import('node:stream/promises');
+    const { Readable } = await import('node:stream');
+    await pipeline(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream), fs.createWriteStream(temporal));
+    if (fs.statSync(temporal).size < 170_000_000) throw new Error('archivo incompleto');
+    fs.renameSync(temporal, destino);
+    return true;
+  } catch (e) {
+    fs.rmSync(temporal, { force: true });
+    console.warn(`[imagenes] no se pudo descargar el modelo de recorte: ${e instanceof Error ? e.message : e}. Las fotos se guardan sin recortar.`);
+    return false;
   }
+}
+
+async function cargarSegmentador(): Promise<Segmentador | null> {
+  if (!(await asegurarModelo())) return null;
   try {
     const ort = await import('onnxruntime-node');
     const sesion = await ort.InferenceSession.create(rutaDelModelo(), { executionProviders: ['cpu'], graphOptimizationLevel: 'all' });

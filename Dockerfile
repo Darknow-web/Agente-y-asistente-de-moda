@@ -3,7 +3,7 @@
 FROM node:22-slim AS build
 WORKDIR /app
 # onnxruntime-node intentaría bajar binarios de CUDA en la instalación; no hacen falta en Cloud Run.
-ENV ONNXRUNTIME_NODE_INSTALL_CUDA=skip
+ENV ONNXRUNTIME_NODE_INSTALL=skip
 COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 COPY . .
@@ -13,7 +13,7 @@ RUN node server/scripts/descargar-modelo.mjs
 
 FROM node:22-slim AS runtime
 ENV NODE_ENV=production
-ENV ONNXRUNTIME_NODE_INSTALL_CUDA=skip
+ENV ONNXRUNTIME_NODE_INSTALL=skip
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; else npm install --omit=dev --no-audit --no-fund; fi
