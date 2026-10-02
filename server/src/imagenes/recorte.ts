@@ -12,6 +12,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import type { ReadableStream as FlujoWeb } from 'node:stream/web';
 import sharp from 'sharp';
 
 /** Color de fondo del armario: el lino de la marca (docs/DISEÑO.md). */
@@ -159,7 +160,7 @@ async function asegurarModelo(): Promise<boolean> {
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
     const { pipeline } = await import('node:stream/promises');
     const { Readable } = await import('node:stream');
-    await pipeline(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream), fs.createWriteStream(temporal));
+    await pipeline(Readable.fromWeb(res.body as FlujoWeb), fs.createWriteStream(temporal));
     if (fs.statSync(temporal).size < 170_000_000) throw new Error('archivo incompleto');
     fs.renameSync(temporal, destino);
     return true;
