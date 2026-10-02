@@ -8,7 +8,7 @@
     "_temporal": "30/09/2026: gemini-3.8-flash tarda 9-29 s por respuesta (saturado) y gemini-3.1-pro-preview devuelve 429 'cuota excedida' en este proyecto. Mientras dure, flash usa el lite (rápido y estable) y pro usa 3.8-flash. Cuando Flash se normalice: flash=gemini-3.8-flash, pro=gemini-3.1-pro-preview (si el proyecto ya tiene cupo)."
   },
   "claude": {
-    "_comentario": "Modelos de Claude por nivel. lite = Haiku (rápido y barato, ideal para conversar), flash = Sonnet, pro = Opus.",
+    "_comentario": "Modelos de Claude por nivel. lite = Haiku (rápido y barato, ideal para conversar), flash = Sonnet, pro = Opus. Opus solo se usa si un agente lo pide aquí; como respaldo de Gemini nunca se sube a Opus (pro cae a Sonnet, flash y lite a Haiku).",
     "lite": "claude-haiku-4-5",
     "flash": "claude-sonnet-5-5",
     "pro": "claude-opus-5-5"

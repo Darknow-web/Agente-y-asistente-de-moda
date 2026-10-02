@@ -69,6 +69,13 @@ export function modelosImagen(config = cargarConfigModelos()): string[] {
  */
 const NIVEL_RESPALDO_GEMINI: Record<Nivel, Nivel> = { flash: 'lite', pro: 'flash', lite: 'flash' };
 
+/**
+ * A qué nivel de Claude se cae cuando Gemini está saturado: siempre un escalón más barato que el nivel
+ * pedido, y nunca Opus. Un respaldo es para no dejar al cliente sin respuesta, no para pagar el modelo
+ * más caro: pro (Gemini Pro) → Sonnet; flash → Haiku; lite → Haiku.
+ */
+const NIVEL_RESPALDO_CLAUDE: Record<Nivel, Nivel> = { pro: 'flash', flash: 'lite', lite: 'lite' };
+
 export interface Motor {
   proveedor: Proveedor;
   modelo: string;
@@ -304,10 +311,11 @@ export class Router {
       } else if (!error.recuperable) {
         throw error;
       } else if (motor.proveedor === 'gemini' && this.proveedorDisponible('claude') && !tieneVideo(opciones.mensajes)) {
-        // Gemini saturado y hay llave de Claude → otra empresa, otra infraestructura, al mismo nivel.
-        const modeloClaude = modeloDeNivel('claude', motor.nivel);
+        // Gemini saturado y hay llave de Claude → otra empresa, otra infraestructura, un escalón más barato.
+        const nivelClaude = NIVEL_RESPALDO_CLAUDE[motor.nivel];
+        const modeloClaude = modeloDeNivel('claude', nivelClaude);
         console.warn(`[router] Gemini ${motor.modelo} falló dos veces para "${agente}" (${error.message}); se cae a Claude (${modeloClaude}).`);
-        motor = { proveedor: 'claude', modelo: modeloClaude, nivel: motor.nivel };
+        motor = { proveedor: 'claude', modelo: modeloClaude, nivel: nivelClaude };
         respuesta = await this.generarConTiempoMax(motor, opciones);
       } else if (motor.proveedor === 'gemini') {
         // Un modelo de Gemini saturado (503) o que no responde → un intento con el modelo de respaldo

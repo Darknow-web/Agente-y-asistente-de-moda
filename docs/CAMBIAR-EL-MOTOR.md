@@ -74,3 +74,12 @@ Gemini al mismo nivel automáticamente y lo anota en los registros. La búsqueda
 
 Para volver a todo Gemini basta con poner `"proveedor": "gemini"` en esos cuatro agentes. Los costos por
 agente se ven en `/api/uso/resumen`.
+
+## Qué pasa cuando un motor falla
+
+- **Claude falla** (llave rechazada, saturación, petición inválida): se cae a Gemini al mismo nivel.
+- **Gemini falla dos veces y hay llave de Claude**: se cae a Claude **un escalón más barato**: Gemini Pro → Sonnet,
+  Flash → Haiku, Lite → Haiku. Nunca a Opus. Opus solo se usa si lo pides a propósito en `modelos.json` o con
+  `MOTOR_<AGENTE>=claude:pro`.
+- **Gemini falla y no hay llave de Claude**: se prueba otro nivel de Gemini (pro → flash, flash → lite).
+

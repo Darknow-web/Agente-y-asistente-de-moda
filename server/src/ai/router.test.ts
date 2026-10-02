@@ -256,15 +256,24 @@ describe('Router.generar', () => {
     }
   });
 
-  it('si Gemini falla dos veces y hay llave de Claude, cae a Claude al mismo nivel', async () => {
+  it('si Gemini falla dos veces y hay llave de Claude, cae a Claude un escalón más barato (flash → Haiku)', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
     vi.stubEnv('MOTOR_GUARDARROPA', 'gemini:flash');
     const { r, gemini, claude } = nuevoRouter();
     gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
     const { respuesta } = await r.generar('guardarropa', opcionesBase);
     expect(gemini.llamadas).toHaveLength(2);
-    expect(claude.llamadas.map((l) => l.modelo)).toEqual([cargarConfigModelos().claude.flash]);
+    expect(claude.llamadas.map((l) => l.modelo)).toEqual([cargarConfigModelos().claude.lite]);
     expect(respuesta.proveedor).toBe('claude');
+  });
+
+  it('desde Gemini pro cae a Sonnet, nunca a Opus', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'llave-claude');
+    vi.stubEnv('MOTOR_GUARDARROPA', 'gemini:pro');
+    const { r, gemini, claude } = nuevoRouter();
+    gemini.fallos = [new ErrorProveedor('503', 'gemini', true), new ErrorProveedor('503', 'gemini', true)];
+    await r.generar('guardarropa', opcionesBase);
+    expect(claude.llamadas.map((l) => l.modelo)).toEqual([cargarConfigModelos().claude.flash]);
   });
 
   it('con video no cae a Claude aunque haya llave: usa el respaldo de Gemini', async () => {
