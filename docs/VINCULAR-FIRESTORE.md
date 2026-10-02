@@ -9,40 +9,35 @@ lo haga, y cómo comprobar que quedó bien.
 
 ## 1. El mensaje que pegas en AI Studio
 
-Copia y pega esto en el chat del agente de AI Studio (cambia `<ID DEL PROYECTO>` por el tuyo si ya tienes uno;
-si no, borra esa parte y deja que cree uno nuevo):
+Lo más seguro es hacerlo desde el menú: **Settings › Integrations › Firebase Firestore & Auth** ›
+"Select existing project" › elige el proyecto y, si pregunta por la base de datos, la existente (no una nueva).
+La región no se puede cambiar después.
+
+Si prefieres el chat del agente, pega esto (cambia los dos identificadores por los tuyos; los de SASTRA
+están en `firebase-applet-config.json`, campos `projectId` y `firestoreDatabaseId`):
 
 ```
-Conecta esta app a Firebase Firestore y Authentication usando el proyecto existente <ID DEL PROYECTO>.
-La configuración va en src/lib/firebase.ts (variables VITE_FIREBASE_*).
-No modifiques firestore.rules ni storage.rules; ya existen en la raíz.
+Conecta esta app a Firebase Firestore y Authentication usando el proyecto existente <ID DEL PROYECTO>
+y la base de datos Firestore existente <ID DE LA BASE DE DATOS>; no crees un proyecto ni una base nueva.
+Escribe o actualiza únicamente firebase-applet-config.json en la raíz (projectId, appId, apiKey, authDomain,
+storageBucket, messagingSenderId, firestoreDatabaseId). Ese archivo ya existe y está versionado a propósito.
+No crees otro archivo de inicialización, no lo añadas a .gitignore, no cambies src/lib/firebase.ts,
+no rellenes variables VITE_FIREBASE_* ni FIREBASE_* en Secrets, y no modifiques firestore.rules,
+storage.rules ni firestore.indexes.json: ya existen en la raíz y son la fuente de verdad.
 ```
-
-Si prefieres hacerlo desde el menú: **Settings › Integrations › Firebase Firestore & Auth**, elige
-"Select existing project" (o crea uno), escoge la región (no se puede cambiar después) y acepta.
 
 ## 2. Qué debe quedar rellenado
 
-La integración escribe la configuración pública del cliente. Comprueba que existan estas variables
-(en el `.env` de AI Studio o en el archivo `src/lib/firebase-config.json`):
+La integración escribe la configuración pública en **`firebase-applet-config.json`** (raíz del repositorio).
+Comprueba que tenga estos campos:
 
 ```
-VITE_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN
-VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID
+projectId, appId, apiKey, authDomain, storageBucket, messagingSenderId, firestoreDatabaseId
 ```
 
-Y para el servidor:
-
-```
-FIREBASE_PROJECT_ID          (el mismo ID del proyecto)
-FIREBASE_STORAGE_BUCKET      (normalmente <ID>.firebasestorage.app)
-```
-
-Estas variables son públicas por diseño (las llaves de Firebase del cliente no son secretas). Lo que sí es
+El cliente y el servidor leen ese archivo. Las variables `VITE_FIREBASE_*` y `FIREBASE_*` de Secrets deben
+quedar **vacías**: si se rellenan, mandan sobre el archivo y pueden apuntar a una base equivocada.
+Estos valores son públicos por diseño (las llaves de Firebase del cliente no son secretas). Lo que sí es
 secreto es `GEMINI_API_KEY`, que solo va en el servidor.
 
 ## 3. Activar Google como método de acceso
