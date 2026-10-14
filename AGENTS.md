@@ -23,6 +23,10 @@ que se despliega en Cloud Run desde Google AI Studio.
   `users/{uid}/deseos`, `users/{uid}/conversaciones`, `users/{uid}/avisos` (incluye el diario del
   departamento, tipo `diario`), `users/{uid}/ajustes` (memoria de calce), `users/{uid}/push`
   (suscripciones a notificaciones), `users/{uid}/uso`, `allowlist/{email}`. Los tipos están en `shared/types.ts`.
+- Monetización: planes y precios en `server/src/config/planes.json`; suscripción en
+  `users/{uid}/suscripcion/actual` (solo la escribe el servidor); reclamos en la colección `reclamaciones`.
+  Cada acción con costo comprueba el cupo del plan **antes** de llamar a la IA y responde 402
+  `requiere-premium`. Detalle en `docs/MONETIZACION.md`.
 - Las consultas evitan índices compuestos a propósito (filtran en memoria lo que haga falta). Los únicos
   índices necesarios están en `firestore.indexes.json`.
 - Las fotos de prendas se pulen en `server/src/imagenes/` (recorte de fondo con U2Net en ONNX, gratis; alisado con
@@ -33,9 +37,17 @@ que se despliega en Cloud Run desde Google AI Studio.
 
 ## Llaves y secretos
 
-- `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `JOBS_SECRET`, `ADMIN_EMAILS` son variables **del servidor**.
+- `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `JOBS_SECRET`, `ADMIN_EMAILS`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`,
+  `APP_URL` y `FIREBASE_SERVICE_ACCOUNT` (solo fuera de Google Cloud) son variables **del servidor**.
   Nunca las expongas al cliente ni las escribas en el código.
 - El cliente solo recibe las `VITE_FIREBASE_*`, que son públicas por diseño.
+
+## Despliegue en Cloudflare
+
+- `wrangler.jsonc` y `cloudflare/worker.ts`: Worker `sastra` delante de un contenedor con el mismo `Dockerfile`, y
+  las tareas programadas como Cron Triggers (UTC). Lo publica Workers Builds con `npx wrangler deploy`.
+- Si cambias los horarios de `triggers.crons`, cambia también `TAREAS` en `cloudflare/worker.ts`.
+- `npx tsc -p cloudflare/tsconfig.json` comprueba los tipos del Worker.
 
 ## Cómo arrancar
 

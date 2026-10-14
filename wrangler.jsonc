@@ -1,0 +1,30 @@
+// SASTRA en Cloudflare Containers. Lo despliega Workers Builds con `npx wrangler deploy` al subir a la rama.
+// Guía: docs/GUIA-DESPLIEGUE.md › Camino C. Los secretos se ponen en el panel (no aquí).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "sastra",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-10-13",
+  "observability": { "enabled": true },
+  "containers": [
+    {
+      "class_name": "Sastra",
+      "image": "./Dockerfile",
+      "max_instances": 2,
+      // 1 vCPU y 3 GiB: el recorte de fotos (U2Net) necesita ~1,1 GB; la imagen pesa ~1,1 GB.
+      "instance_type": { "vcpu": 1, "memory_mib": 3072, "disk_mb": 8000 },
+      // Oeste de Norteamérica: cerca de Firestore y Storage (us-west1).
+      "constraints": { "regions": ["WNAM"] }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "SASTRA", "class_name": "Sastra" }]
+  },
+  "exports": {
+    "Sastra": { "type": "durable-object", "storage": "sqlite" }
+  },
+  // UTC. Lima es UTC−5. Deben coincidir con TAREAS en cloudflare/worker.ts.
+  "triggers": {
+    "crons": ["30 11 * * *", "0 13 * * *", "0 0 * * *", "0 1 * * 1"]
+  }
+}

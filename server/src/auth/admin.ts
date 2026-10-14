@@ -1,9 +1,10 @@
 /**
- * Firebase Admin: se inicializa con las credenciales por defecto del entorno
- * (en Cloud Run, la cuenta de servicio del servicio; en local, `gcloud auth application-default login`
- * o los emuladores). No requiere archivo de llave.
+ * Firebase Admin. En Google Cloud (Cloud Run, AI Studio) usa las credenciales por defecto del entorno, sin
+ * archivo de llave. Fuera de Google (Cloudflare) no existen: se usa la llave de una cuenta de servicio que
+ * llega en la variable secreta FIREBASE_SERVICE_ACCOUNT (el JSON completo, o ese JSON en base64).
+ * Nunca se escribe en el código ni llega al cliente.
  */
-import { applicationDefault, getApps, initializeApp, type App } from 'firebase-admin/app';
+import { applicationDefault, cert, getApps, initializeApp, type App, type ServiceAccount } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -12,6 +13,32 @@ import path from 'node:path';
 import { env } from '../util/env.js';
 
 let app: App | null = null;
+
+/**
+ * Lee la llave de cuenta de servicio de FIREBASE_SERVICE_ACCOUNT. Acepta el JSON tal cual o en base64 y repara
+ * los saltos de línea de `private_key` cuando el panel los guarda como "\\n". Pura (probada).
+ */
+export function leerCuentaServicio(valor: string): ServiceAccount & { project_id?: string } {
+  const crudo = valor.trim();
+  const texto = crudo.startsWith('{') ? crudo : Buffer.from(crudo, 'base64').toString('utf8');
+  let datos: Record<string, unknown>;
+  try {
+    datos = JSON.parse(texto) as Record<string, unknown>;
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT no es un JSON válido (pega el archivo completo que descargaste de Firebase).');
+  }
+  const email = String(datos.client_email ?? '');
+  const llave = String(datos.private_key ?? '').replace(/\\n/g, '\n');
+  if (!email || !llave.includes('PRIVATE KEY')) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT no trae client_email y private_key: descarga la llave en Firebase › Configuración › Cuentas de servicio.');
+  }
+  return { projectId: String(datos.project_id ?? ''), clientEmail: email, privateKey: llave, project_id: String(datos.project_id ?? '') };
+}
+
+function credencialFirebase() {
+  const valor = env('FIREBASE_SERVICE_ACCOUNT');
+  return valor ? cert(leerCuentaServicio(valor)) : applicationDefault();
+}
 let problema: string | null = null;
 
 interface ConfigApplet {
@@ -102,7 +129,7 @@ export function iniciarFirebase(): App | null {
     app = initializeApp({
       projectId: id,
       storageBucket: bucketNombre() || undefined,
-      ...(usaEmulador ? {} : { credential: applicationDefault() }),
+      ...(usaEmulador ? {} : { credential: credencialFirebase() }),
     });
     return app;
   } catch (e) {

@@ -4,13 +4,16 @@ Esta guía te lleva desde cero hasta tener SASTRA funcionando en internet para t
 con el departamento trabajando solo (look del día, plan semanal, lavado, estrenos, deseos) y avisos en el
 móvil. Tiempo estimado: 45 minutos la primera vez.
 
-Hay dos caminos y los dos usan el mismo código:
+Hay tres caminos y los tres usan el mismo código:
 
 - **Camino A · Google AI Studio** (el que usamos hasta ahora): importas el repositorio, pulsas Publish y
   AI Studio lo despliega en Cloud Run. Ventaja: todo desde una pantalla. Desventaja: AI Studio no trae los
   cambios nuevos de GitHub por sí solo; cada arreglo se pega como parche o se vuelve a importar.
 - **Camino B · Cloud Run directo desde GitHub**: cada cambio que llega a la rama se publica solo en uno o
-  dos minutos. Es el camino cuando ya tengas usuarios de verdad.
+  dos minutos.
+- **Camino C · Cloudflare (recomendado para lanzar y cobrar)**: Cloudflare Containers con el mismo Dockerfile,
+  publicación automática desde GitHub, sin las cuotas de AI Studio y con las tareas programadas incluidas.
+  Cuesta US$5 al mes (plan Workers Paid) más el uso.
 
 ## Antes de empezar
 
@@ -130,6 +133,73 @@ AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
 5. **Seguridad › Cuenta de servicio**: roles **Cloud Datastore User** y **Storage Object Admin** (IAM).
 6. Crear. Cada vez que se suba un cambio a la rama, Cloud Run vuelve a publicar solo. Los Pasos 4 a 7 del
    Camino A aplican igual (dominio autorizado, invitados, notificaciones, tareas programadas).
+
+## Camino C · Cloudflare
+
+Lo que hay en el repositorio: `wrangler.jsonc` (el Worker `sastra`, el contenedor, las tareas programadas) y
+`cloudflare/worker.ts` (reenvía todo al contenedor y lanza las tareas). No hace falta Docker en tu equipo:
+Cloudflare construye la imagen.
+
+### C1 · Cuenta y plan
+1. [dash.cloudflare.com](https://dash.cloudflare.com) › **Workers & Pages** › **Plans** › **Workers Paid** (US$5/mes).
+   Sin este plan no hay contenedores.
+
+### C2 · Llave de Firebase (fuera de Google no hay credenciales automáticas)
+1. Consola de Firebase › ⚙ **Configuración del proyecto** › **Cuentas de servicio** › **Generar nueva clave privada**.
+2. Se descarga un archivo `.json`. Ábrelo con el bloc de notas y copia **todo** su contenido. Es una llave
+   secreta: no la subas a GitHub ni la mandes por chat; solo va en el paso C4.
+
+### C3 · Conectar el repositorio
+1. **Workers & Pages** › **Create** › **Import a repository** › GitHub › `Darknow-web/Agente-y-asistente-de-moda`.
+2. Nombre del proyecto: **`sastra`** (tiene que coincidir con `wrangler.jsonc`).
+3. Rama de producción: `claude/fashion-ai-assistant-agent-bbfduf`. Directorio raíz: `/`.
+4. Build command: **vacío**. Deploy command: **`npx wrangler deploy`**.
+5. Guardar y desplegar. La primera vez tarda unos 10 minutos (construye la imagen con el modelo de fotos).
+
+### C4 · Secretos
+Worker `sastra` › **Settings** › **Variables and Secrets** › **Add**, tipo **Secret**, uno por uno:
+
+| Nombre | Valor |
+|---|---|
+| `GEMINI_API_KEY` | tu llave de Gemini (aistudio.google.com/apikey) |
+| `ANTHROPIC_API_KEY` | tu llave de Anthropic |
+| `ADMIN_EMAILS` | tu correo |
+| `JOBS_SECRET` | el mismo texto largo de siempre |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | las de los avisos |
+| `FIREBASE_SERVICE_ACCOUNT` | el contenido completo del `.json` del paso C2 |
+| `APP_URL` | la dirección del Worker, por ejemplo `https://sastra.TU-SUBDOMINIO.workers.dev` |
+| `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` | de Mercado Pago (ver *Cobros con Mercado Pago*) |
+
+Guardar crea una versión nueva; el contenedor se reinicia con los secretos. Firebase (proyecto, base de datos,
+bucket) se sigue leyendo de `firebase-applet-config.json`.
+
+### C5 · Firebase
+1. Authentication › Settings › **Dominios autorizados** › añade `sastra.TU-SUBDOMINIO.workers.dev`.
+2. Publica las reglas (`firestore.rules` y `storage.rules`) como se explica en el Paso 3.
+
+### C6 · Comprobar
+- Abre `https://sastra.TU-SUBDOMINIO.workers.dev/api/salud`: debe responder. La primera petición tras un rato sin
+  uso tarda unos 10 segundos (el contenedor despierta).
+- Entra con Google, sube una prenda y mira que la ficha diga "Fondo recortado".
+- Tareas programadas: Worker › **Settings** › **Triggers** muestra los cuatro horarios (en UTC; Lima es UTC−5).
+  Desde ahí puedes lanzar uno a mano y ver el resultado en **Logs**. Ya no hace falta Cloud Scheduler.
+
+## Cobros con Mercado Pago
+
+1. [mercadopago.com.pe/developers](https://www.mercadopago.com.pe/developers) › **Tus integraciones** › **Crear
+   aplicación** (producto: Suscripciones). Para cobrar de verdad conviene tener RUC (por ejemplo, Nuevo RUS).
+2. **Credenciales de prueba** primero: copia el *Access Token* de prueba a `MP_ACCESS_TOKEN`. Crea dos usuarios de
+   prueba (vendedor y comprador) en la misma página para simular un pago.
+3. **Webhooks** › Configurar notificaciones › URL `https://TU-APP/api/pagos/mercadopago/webhook`, eventos
+   **Planes y suscripciones** (`subscription_preapproval` y `subscription_authorized_payment`) › Guardar. Copia la
+   **clave secreta** que aparece a `MP_WEBHOOK_SECRET`.
+4. Prueba: entra a SASTRA con una cuenta que no sea de cortesía › Perfil › Tu plan › Probar 7 días gratis, paga con
+   el comprador de prueba y vuelve: la página debe decir "Prueba gratis de Premium hasta…".
+5. Cuando funcione, cambia `MP_ACCESS_TOKEN` por el de **producción** y repite el paso 3 en modo producción.
+6. Completa tu nombre, RUC y domicilio en `src/lib/legal.ts` (salen en Términos, Privacidad y el Libro de
+   Reclamaciones) y revisa esos textos con un abogado. Los reclamos se listan en `/api/reclamaciones` (admin).
+
+Precios y límites: `server/src/config/planes.json` (ver docs/MONETIZACION.md).
 
 ## Fotos: recorte de fondo y alisado
 

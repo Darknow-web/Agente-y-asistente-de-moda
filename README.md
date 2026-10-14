@@ -19,8 +19,10 @@ hablan con una sola voz.
   avisos en el móvil y un diario de lo que el departamento hace solo.
 - **Qué cuesta**: la conversación va en Claude Haiku y el resto en Gemini, con tus propias llaves. Unos 2
   dólares al mes por persona activa. Ver [docs/COSTOS.md](docs/COSTOS.md).
-- **Cómo se publica**: desde Google AI Studio a Cloud Run. Paso a paso en
-  [docs/GUIA-DESPLIEGUE.md](docs/GUIA-DESPLIEGUE.md) y, para la base de datos,
+- **Cómo gana dinero**: plan Gratis con límites y Premium a S/ 19.90 al mes con Mercado Pago, 7 días de prueba.
+  Ver [docs/MONETIZACION.md](docs/MONETIZACION.md).
+- **Cómo se publica**: en Cloudflare (Containers, desde GitHub), o desde Google AI Studio o Cloud Run. Paso a paso
+  en [docs/GUIA-DESPLIEGUE.md](docs/GUIA-DESPLIEGUE.md) y, para la base de datos,
   [docs/VINCULAR-FIRESTORE.md](docs/VINCULAR-FIRESTORE.md).
 - **Cómo cambiar el motor** (Gemini, Claude o ambos): [docs/CAMBIAR-EL-MOTOR.md](docs/CAMBIAR-EL-MOTOR.md).
 - **Quién es quién en el departamento** y cómo editar su conocimiento:

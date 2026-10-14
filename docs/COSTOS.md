@@ -78,3 +78,25 @@ resumen de uso y ajusta límites o modelos. Nada se apaga solo: la alerta avisa,
 - **Memoria**: el servicio necesita 2 GiB. En reposo Cloud Run no cobra; en uso, la diferencia frente a 1 GiB es
   de centavos al mes.
 
+## Ingresos y margen con Premium
+
+Tipo de cambio de referencia: S/ 3.75 por dólar. Comisión de Mercado Pago aproximada: 4 % + IGV por cobro.
+
+| Por suscriptor al mes | Soles |
+|---|---|
+| Precio mensual | 19.90 |
+| Comisión de Mercado Pago (≈ 4.7 %) | −0.94 |
+| IA de un usuario Premium promedio (≈ US$2.50) | −9.40 |
+| **Margen** | **≈ 9.60** |
+
+Con el plan anual (S/ 179) el margen mensual es parecido y el cobro llega por adelantado. Un usuario Gratis cuesta
+poco porque sus límites cortan el gasto: unos US$0.30 a 0.60 al mes. Regla práctica: cada suscriptor Premium cubre
+el costo de IA de unos 15 usuarios Gratis.
+
+## Alojamiento en Cloudflare
+
+- Plan **Workers Paid**: US$5 al mes. Incluye 25 GiB-hora de memoria, 375 minutos de vCPU y 200 GB-hora de disco.
+- El contenedor (1 vCPU, 3 GiB) solo cobra mientras está despierto; se duerme tras 15 minutos sin uso.
+  Despierto, la memoria cuesta unos US$0.027 por hora; la CPU solo se cobra cuando trabaja.
+- Con pocas decenas de usuarios: unos **US$7 a 10 al mes** en total. El primer suscriptor Premium lo cubre.
+
