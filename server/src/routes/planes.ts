@@ -5,7 +5,8 @@ import { Router as ExpressRouter } from 'express';
 import type { ReqGenerarSemana, RespHoy } from '@shared/api.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import { guardarPlan, leerPlan } from '../data/repos.js';
-import { asincrono, peticionInvalida } from '../util/errores.js';
+import { asincrono, peticionInvalida, requierePremium } from '../util/errores.js';
+import { limitesDe } from '../config/planes.js';
 import { construirContexto } from '../memory/construir.js';
 import { generarSemana, lookDelDia } from '../agents/planificacion/index.js';
 import { fechaLocal, lunesDe } from '../util/ids.js';
@@ -48,12 +49,15 @@ rutasPlanes.post(
   asincrono(async (req, res) => {
     const { inicio, notas } = (req.body ?? {}) as ReqGenerarSemana;
     const semana = lunesDe(inicio && /^\d{4}-\d{2}-\d{2}$/.test(inicio) ? inicio : fechaLocal());
+    const anterior = await leerPlan(req.usuario!.uid, semana);
+    if (anterior && !limitesDe(req.usuario!.plan).rehacerSemana) {
+      throw requierePremium('En el plan Gratis la semana se planifica una vez. Para rehacerla cuando cambien tus planes, pasa a Premium.');
+    }
     const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email);
     if (ctx.prendas.length < 5) throw peticionInvalida('Para planificar una semana necesito al menos cinco prendas en tu armario.');
     const { plan, resumen } = await generarSemana(ctx, semana, notas);
     // Al rehacer una semana ya empezada, los días que ya pasaron se conservan tal como se vivieron.
     const hoy = fechaLocal(new Date(), ctx.zona);
-    const anterior = await leerPlan(ctx.uid, semana);
     if (anterior) {
       const pasados = new Map(anterior.dias.filter((d) => d.fecha < hoy).map((d) => [d.fecha, d]));
       plan.dias = plan.dias.map((d) => pasados.get(d.fecha) ?? d);

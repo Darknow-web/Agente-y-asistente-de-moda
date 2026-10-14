@@ -271,6 +271,62 @@ export interface PreguntaPerfil {
 }
 
 // ------------------------------------------------------------ uso y costos
+// ------------------------------------------------------------ planes y suscripción
+export type NombrePlan = 'gratis' | 'premium';
+export type PeriodoPago = 'mensual' | 'anual';
+/** prueba: dentro de los días gratis · activa: cobrando · pendiente: aún no autorizó el pago en Mercado Pago. */
+export type EstadoSuscripcion = 'prueba' | 'activa' | 'pendiente' | 'pausada' | 'cancelada';
+
+/** users/{uid}/suscripcion/actual. Solo la escribe el servidor (webhook de Mercado Pago o checkout). */
+export interface Suscripcion {
+  plan: NombrePlan;
+  estado: EstadoSuscripcion;
+  periodo?: PeriodoPago;
+  proveedor: 'mercadopago';
+  mpPreapprovalId?: string;
+  /** Hasta cuándo rige lo pagado (o la prueba). Tras cancelar, Premium sigue hasta esta fecha. */
+  vigenteHasta?: string;
+  /** Ya usó los días de prueba alguna vez: no se regalan de nuevo. */
+  pruebaUsada?: boolean;
+  emailPagador?: string;
+  actualizadaEn: string;
+}
+
+/** Qué incluye un plan. null = sin límite. */
+export interface LimitesPlan {
+  prendasMax: number | null;
+  mensajesPorDia: number;
+  /** false: solo se puede planificar una semana que aún no tiene plan (sin "Rehacer"). */
+  rehacerSemana: boolean;
+  planSemanalAutomatico: boolean;
+  mejorarFotoPorDia: number;
+  probadorPorMes: number | null;
+  comprasPorMes: number | null;
+}
+
+/** De dónde sale el plan efectivo de una persona. */
+export type OrigenPlan = 'gratis' | 'suscripcion' | 'cortesia' | 'admin';
+
+/** Libro de Reclamaciones virtual (INDECOPI). Colección `reclamaciones`, cerrada al cliente. */
+export interface Reclamacion {
+  id: string;
+  /** reclamo: disconformidad con el servicio · queja: malestar con la atención. */
+  tipo: 'reclamo' | 'queja';
+  nombre: string;
+  documento: string;
+  email: string;
+  telefono?: string;
+  domicilio?: string;
+  /** Qué contrató: "Suscripción SASTRA Premium mensual", etc. */
+  servicio: string;
+  monto?: number;
+  detalle: string;
+  pedido: string;
+  uid?: string;
+  estado: 'recibida' | 'atendida';
+  creadaEn: string;
+}
+
 export interface RegistroUso {
   id: string;
   agente: NombreAgente;

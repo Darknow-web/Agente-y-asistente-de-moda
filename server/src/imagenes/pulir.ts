@@ -4,13 +4,14 @@
  */
 import type { Prenda } from '@shared/types.js';
 import { ErrorProveedor } from '../ai/provider.js';
-import { leerLimites } from '../config/limites.js';
 import { actualizarPrenda, contarHoy, leerPrenda, sumarHoy } from '../data/repos.js';
 import { descargarFoto, subirBytesPrenda } from '../data/storage.js';
 import { alisadoDisponible, alisarFoto } from './alisado.js';
 import { miniatura, recortarPrenda } from './recorte.js';
 
 export interface OpcionesPulir {
+  /** Alisados con IA permitidos al día según el plan (0 = solo recorte gratuito). */
+  alisadosPorDia: number;
   /** Alisar con IA aunque Guardarropa no haya marcado la foto como arrugada (botón "Mejorar foto"). */
   forzarAlisado?: boolean;
 }
@@ -21,13 +22,14 @@ export interface ResultadoPulir {
   resumen: 'alisada-y-recortada' | 'recortada' | 'alisada' | 'sin-cambios' | 'sin-cupo';
 }
 
-/** ¿Quedan alisados con IA para este usuario hoy? */
-export async function quedaCupoDeRetoque(uid: string): Promise<boolean> {
+/** ¿Quedan alisados con IA para este usuario hoy, con el cupo de su plan? */
+export async function quedaCupoDeRetoque(uid: string, alisadosPorDia: number): Promise<boolean> {
+  if (alisadosPorDia <= 0) return false;
   const usados = await contarHoy(uid, 'retoques');
-  return usados < leerLimites().retoquesPorUsuarioPorDia;
+  return usados < alisadosPorDia;
 }
 
-export async function pulirFotoDePrenda(uid: string, prendaId: string, op: OpcionesPulir = {}): Promise<ResultadoPulir> {
+export async function pulirFotoDePrenda(uid: string, prendaId: string, op: OpcionesPulir): Promise<ResultadoPulir> {
   const prenda = await leerPrenda(uid, prendaId);
   if (!prenda) throw new Error('Esa prenda no existe.');
   // Siempre se parte del original, nunca de una versión ya pulida.
@@ -41,7 +43,7 @@ export async function pulirFotoDePrenda(uid: string, prendaId: string, op: Opcio
 
   const quiereAlisar = op.forzarAlisado || prenda.fotoArrugada === true;
   if (quiereAlisar && alisadoDisponible()) {
-    if (await quedaCupoDeRetoque(uid)) {
+    if (await quedaCupoDeRetoque(uid, op.alisadosPorDia)) {
       await sumarHoy(uid, 'retoques');
       try {
         const r = await alisarFoto(uid, original);

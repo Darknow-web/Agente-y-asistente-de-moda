@@ -16,6 +16,8 @@ import { rutasPlanes } from './routes/planes.js';
 import { rutasChat } from './routes/chat.js';
 import { rutasJobs } from './routes/jobs.js';
 import { rutasProbador } from './routes/probador.js';
+import { rutasSuscripcion } from './routes/suscripcion.js';
+import { rutasLegal } from './routes/legal.js';
 import { leerLimites } from './config/limites.js';
 
 // Un fallo asíncrono fuera de una ruta (p. ej. credenciales de Firestore) no debe tumbar el servidor:
@@ -46,6 +48,8 @@ app.use('/api', rutasArmario);
 app.use('/api', rutasPlanes);
 app.use('/api', rutasChat);
 app.use('/api', rutasProbador);
+app.use('/api', rutasSuscripcion);
+app.use('/api', rutasLegal);
 app.use('/api', rutasJobs);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Esa ruta no existe.' }));
 

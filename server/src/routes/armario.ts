@@ -3,7 +3,7 @@
  * "tres formas de ponértela" y memoria de ajuste.
  */
 import { Router as ExpressRouter } from 'express';
-import type { Deseo, Prenda } from '@shared/types.js';
+import type { Deseo, NombrePlan, Prenda } from '@shared/types.js';
 import type { ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespResumenArmario } from '@shared/api.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
@@ -20,10 +20,12 @@ import {
   marcarLavada,
   registrarUso,
   ultimoUsoPorPrenda,
+  contarPrendas,
 } from '../data/repos.js';
 import { borrarFotoPrenda, subirFotoPrenda } from '../data/storage.js';
 import { pulirFotoDePrenda, quedaCupoDeRetoque, restaurarFotoOriginal } from '../imagenes/pulir.js';
-import { ErrorHttp, asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
+import { ErrorHttp, asincrono, noEncontrado, peticionInvalida, requierePremium } from '../util/errores.js';
+import { alcanzoLimite, limitesDe } from '../config/planes.js';
 import { construirContexto } from '../memory/construir.js';
 import { calcularResumenArmario } from '../data/resumen-armario.js';
 import { catalogarFoto } from '../agents/guardarropa/index.js';
@@ -32,6 +34,15 @@ import { debeRevisar, revisarConCalidad } from '../agents/calidad/index.js';
 import { ahora } from '../util/ids.js';
 
 export const rutasArmario = ExpressRouter();
+
+/** Plan Gratis: tope de prendas. Se comprueba antes de catalogar (para no gastar IA) y al guardar. */
+async function exigirEspacioEnArmario(uid: string, plan: NombrePlan): Promise<void> {
+  const tope = limitesDe(plan).prendasMax;
+  if (tope === null) return;
+  if (alcanzoLimite(tope, await contarPrendas(uid))) {
+    throw requierePremium(`Tu armario Gratis admite ${tope} prendas y ya está lleno. Con Premium no hay límite.`);
+  }
+}
 // Solo a las rutas de este módulo (un `use` sin ruta afectaría a todo /api)
 rutasArmario.use(['/prendas', '/deseos', '/armario', '/ajustes'], requiereSesion, requiereInvitado);
 
@@ -103,6 +114,7 @@ rutasArmario.post(
   asincrono(async (req, res) => {
     const { foto, pista, rapido } = (req.body ?? {}) as ReqCatalogar;
     if (!foto?.datos || foto.tipo !== 'imagen') throw peticionInvalida('Necesitamos una foto de la prenda.');
+    await exigirEspacioEnArmario(req.usuario!.uid, req.usuario!.plan); // antes de gastar IA en catalogar
     const ctx = await construirContexto(req.usuario!.uid, req.usuario!.email, { conClima: false });
     const r = await catalogarFoto(ctx, foto, pista);
     let preguntas = r.preguntas;
@@ -125,6 +137,7 @@ rutasArmario.post(
   asincrono(async (req, res) => {
     const { prenda, foto } = (req.body ?? {}) as ReqCrearPrenda;
     if (!prenda?.nombre || !prenda.categoria) throw peticionInvalida('La prenda necesita nombre y categoría.');
+    await exigirEspacioEnArmario(req.usuario!.uid, req.usuario!.plan);
     const creada = await crearPrenda(req.usuario!.uid, {
       ...prenda,
       colores: Array.isArray(prenda.colores) ? prenda.colores : [],
@@ -149,7 +162,7 @@ rutasArmario.post(
 rutasArmario.post(
   '/prendas/:id/foto/pulir',
   asincrono(async (req, res) => {
-    const r = await pulirFotoDePrenda(req.usuario!.uid, String(req.params.id));
+    const r = await pulirFotoDePrenda(req.usuario!.uid, String(req.params.id), { alisadosPorDia: limitesDe(req.usuario!.plan).mejorarFotoPorDia });
     res.json(r.prenda);
   }),
 );
@@ -158,9 +171,11 @@ rutasArmario.post(
 rutasArmario.post(
   '/prendas/:id/foto/mejorar',
   asincrono(async (req, res) => {
-    const uid = req.usuario!.uid;
-    if (!(await quedaCupoDeRetoque(uid))) throw new ErrorHttp(429, 'Llegaste al límite de fotos mejoradas con IA por hoy. Mañana puedes seguir.');
-    const r = await pulirFotoDePrenda(uid, String(req.params.id), { forzarAlisado: true });
+    const { uid, plan } = req.usuario!;
+    const cupo = limitesDe(plan).mejorarFotoPorDia;
+    if (cupo <= 0) throw requierePremium('Mejorar fotos con IA (alisar arrugas) es parte de Premium. El recorte de fondo sigue siendo gratis.');
+    if (!(await quedaCupoDeRetoque(uid, cupo))) throw new ErrorHttp(429, 'Llegaste al límite de fotos mejoradas con IA por hoy. Mañana puedes seguir.');
+    const r = await pulirFotoDePrenda(uid, String(req.params.id), { forzarAlisado: true, alisadosPorDia: cupo });
     if (r.resumen === 'sin-cambios') throw new ErrorHttp(502, 'No pudimos mejorar esta foto. Prueba con otra más iluminada, con la prenda sola sobre un fondo liso.');
     res.json(r.prenda);
   }),

@@ -1,0 +1,31 @@
+{
+  "_comentario": "Planes de SASTRA. Se pueden cambiar precios y límites aquí sin tocar código. null = sin límite. Los precios van en soles (PEN) y son los que se cobran en Mercado Pago a quien se suscriba desde ahora; los suscriptores existentes conservan su precio.",
+  "accesoAbierto": true,
+  "_accesoAbierto": "true: cualquiera entra con Google en plan Gratis. false: solo correos de ADMIN_EMAILS y de la lista de cortesías (el modo por invitación de antes).",
+  "precios": {
+    "moneda": "PEN",
+    "mensual": 19.9,
+    "anual": 179,
+    "pruebaDias": 7
+  },
+  "planes": {
+    "gratis": {
+      "prendasMax": 30,
+      "mensajesPorDia": 10,
+      "rehacerSemana": false,
+      "planSemanalAutomatico": false,
+      "mejorarFotoPorDia": 0,
+      "probadorPorMes": 3,
+      "comprasPorMes": 3
+    },
+    "premium": {
+      "prendasMax": null,
+      "mensajesPorDia": 60,
+      "rehacerSemana": true,
+      "planSemanalAutomatico": true,
+      "mejorarFotoPorDia": 10,
+      "probadorPorMes": null,
+      "comprasPorMes": null
+    }
+  }
+}

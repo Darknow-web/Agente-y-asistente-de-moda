@@ -60,6 +60,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
           invitado: false,
           admin: false,
           perfil: {},
+          plan: 'gratis',
+          origenPlan: 'gratis',
           mensajesRestantesHoy: 0,
         });
       } else {

@@ -65,7 +65,7 @@ resumen de uso y ajusta límites o modelos. Nada se apaga solo: la alerta avisa,
 
 - Pon `planificacion` y `compras` en nivel `flash` en `modelos.json` (baja la calidad del plan semanal un
   poco, baja el costo bastante).
-- Baja `mensajesPorUsuarioPorDia` a 30.
+- Baja `mensajesPorDia` del plan en `server/src/config/planes.json`.
 - Apaga Calidad para el chat (mantén `revisa` solo con `plan-semanal` y `lista-compras`).
 
 ## Fotos del armario

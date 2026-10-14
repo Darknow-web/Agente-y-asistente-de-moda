@@ -18,6 +18,8 @@ import { generarSemana, lookDelDia } from '../agents/planificacion/index.js';
 import { formasDeUso } from '../agents/estilismo/index.js';
 import { resumenArmario } from './armario.js';
 import { ahora, fechaLocal, lunesDe, sumarDias } from '../util/ids.js';
+import { limitesDe } from '../config/planes.js';
+import { planDeUsuario } from '../auth/plan.js';
 
 export const rutasJobs = ExpressRouter();
 rutasJobs.use('/jobs', requiereSecretoJobs);
@@ -66,6 +68,8 @@ rutasJobs.post(
   asincrono(async (_req, res) => {
     res.json(
       await porUsuario(async (uid, email) => {
+        // El plan automático del domingo es parte de Premium; en Gratis la persona planifica desde Semana.
+        if (!limitesDe(await planDeUsuario(uid, email)).planSemanalAutomatico) return null;
         const ctx = await construirContexto(uid, email);
         if (ctx.prendas.length < 5) return null;
         // Si hoy es domingo planificamos la semana que empieza mañana; si no, la actual si falta.

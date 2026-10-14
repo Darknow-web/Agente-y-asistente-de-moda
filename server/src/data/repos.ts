@@ -25,7 +25,9 @@ import type {
   Perfil,
   PlanSemanal,
   Prenda,
+  Reclamacion,
   RegistroUso,
+  Suscripcion,
   SuscripcionPush,
   Uso,
 } from '@shared/types.js';
@@ -326,6 +328,49 @@ export async function sumarHoy(uid: string, campo: 'mensajes' | 'retoques'): Pro
   const ref = usuario(uid).collection('contadores').doc(fechaLocal());
   await ref.set({ [campo]: FieldValue.increment(1) }, { merge: true });
   return contarHoy(uid, campo);
+}
+
+/** Contador del mes (Probador, Compras) en users/{uid}/contadores/mes-{AAAA-MM}. */
+export type CampoMes = 'probador' | 'compras';
+function idMes(): string {
+  return `mes-${fechaLocal().slice(0, 7)}`;
+}
+
+export async function contarMes(uid: string, campo: CampoMes): Promise<number> {
+  const doc = await usuario(uid).collection('contadores').doc(idMes()).get();
+  return (doc.data()?.[campo] as number | undefined) ?? 0;
+}
+
+export async function sumarMes(uid: string, campo: CampoMes): Promise<void> {
+  await usuario(uid).collection('contadores').doc(idMes()).set({ [campo]: FieldValue.increment(1) }, { merge: true });
+}
+
+export async function contarPrendas(uid: string): Promise<number> {
+  const snap = await usuario(uid).collection('prendas').count().get();
+  return snap.data().count;
+}
+
+// ---------------------------------------------------------------- suscripción (solo la escribe el servidor)
+export async function leerSuscripcion(uid: string): Promise<Suscripcion | null> {
+  const doc = await usuario(uid).collection('suscripcion').doc('actual').get();
+  return (doc.data() as Suscripcion | undefined) ?? null;
+}
+
+export async function guardarSuscripcion(uid: string, s: Suscripcion): Promise<void> {
+  await usuario(uid).collection('suscripcion').doc('actual').set(s);
+}
+
+// ---------------------------------------------------------------- libro de reclamaciones (colección cerrada al cliente)
+export async function guardarReclamacion(r: Omit<Reclamacion, 'id' | 'creadaEn' | 'estado'>): Promise<Reclamacion> {
+  const id = nuevoId('rec');
+  const completa: Reclamacion = { ...r, id, creadaEn: ahora(), estado: 'recibida' };
+  await db().collection('reclamaciones').doc(id).set(completa);
+  return completa;
+}
+
+export async function listarReclamaciones(): Promise<Reclamacion[]> {
+  const snap = await db().collection('reclamaciones').orderBy('creadaEn', 'desc').limit(200).get();
+  return snap.docs.map((d) => d.data() as Reclamacion);
 }
 
 export async function mensajesHoy(uid: string): Promise<number> {

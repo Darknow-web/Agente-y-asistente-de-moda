@@ -3,7 +3,7 @@
  *
  * Cuesta unos 4 centavos por foto, así que solo se usa cuando Guardarropa marcó la foto como
  * arrugada o cuando el cliente pulsa "Mejorar foto", y siempre dentro del cupo diario
- * (limites.json → retoquesPorUsuarioPorDia).
+ * (planes.json → mejorarFotoPorDia; en el plan Gratis es 0).
  *
  * El modelo repinta la prenda, y podría cambiar un estampado o un color. Por eso, después, el
  * motor de Guardarropa compara el original con el resultado y lo descarta si ya no es la misma prenda.

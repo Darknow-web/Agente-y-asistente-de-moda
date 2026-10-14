@@ -6,11 +6,16 @@ export class ErrorHttp extends Error {
     public readonly codigo: number,
     message: string,
     public readonly detalle?: string,
+    /** Clave estable para que el cliente reaccione (p. ej. 'requiere-premium' muestra la invitación a Premium). */
+    public readonly clave?: string,
   ) {
     super(message);
     this.name = 'ErrorHttp';
   }
 }
+
+/** 402: la acción no está en el plan Gratis o ya usó su cupo. El cliente ofrece pasar a Premium. */
+export const requierePremium = (m: string) => new ErrorHttp(402, m, undefined, 'requiere-premium');
 
 export const noAutorizado = (m = 'Necesitas iniciar sesión.') => new ErrorHttp(401, m);
 export const prohibido = (m = 'No tienes permiso para hacer esto.') => new ErrorHttp(403, m);
@@ -28,7 +33,7 @@ export function asincrono(
 
 export function manejadorErrores(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ErrorHttp) {
-    res.status(err.codigo).json({ error: err.message, detalle: err.detalle });
+    res.status(err.codigo).json({ error: err.message, detalle: err.detalle, ...(err.clave ? { codigo: err.clave } : {}) });
     return;
   }
   const mensaje = err instanceof Error ? err.message : String(err);

@@ -3,18 +3,23 @@
  * Flujo: límite diario → conversación → Director (delegando a departamentos) → Calidad si aplica → respuesta.
  */
 import { Router as ExpressRouter, type Request, type Response } from 'express';
-import type { Adjunto, Conversacion, EventoChat, Mensaje, PeticionChat } from '@shared/types.js';
+import type { Adjunto, Conversacion, EventoChat, Mensaje, NombrePlan, PeticionChat } from '@shared/types.js';
 import type { MensajeModelo, Parte } from '../ai/provider.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
   guardarConversacion,
   leerConversacion,
   listarConversaciones,
+  contarMes,
   mensajesHoy,
   nuevoMensaje,
   sumarMensajeHoy,
+  sumarMes,
+  type CampoMes,
 } from '../data/repos.js';
-import { asincrono, noEncontrado, peticionInvalida, ErrorHttp } from '../util/errores.js';
+import { asincrono, noEncontrado, peticionInvalida, requierePremium, ErrorHttp } from '../util/errores.js';
+import { alcanzoLimite, limitesDe } from '../config/planes.js';
+import type { Departamento } from '../agents/departamentos.js';
 import { nuevoId, ahora } from '../util/ids.js';
 import { construirContexto } from '../memory/construir.js';
 import { correrDirector } from '../agents/director/index.js';
@@ -111,6 +116,21 @@ function tipoRevisionPara(departamentos: string[]): TipoRevision {
   return 'chat';
 }
 
+/**
+ * Compras y Probador tienen cupo mensual en el plan Gratis. Si se agotó, el Director recibe el motivo en vez
+ * de la respuesta del departamento y se lo explica al cliente con la invitación a Premium.
+ */
+async function permitirDepartamento(uid: string, plan: NombrePlan, dep: Departamento): Promise<string | null> {
+  if (dep !== 'compras' && dep !== 'probador') return null;
+  const campo: CampoMes = dep;
+  const tope = dep === 'compras' ? limitesDe(plan).comprasPorMes : limitesDe(plan).probadorPorMes;
+  if (alcanzoLimite(tope, await contarMes(uid, campo))) {
+    return `El cliente usó las ${tope} consultas de ${dep === 'compras' ? 'Compras' : 'Probador'} de este mes incluidas en el plan Gratis. Díselo con amabilidad, ofrece ayudarle con lo que tiene en su armario y menciona que con Premium (página Plan) no hay límite. No inventes la respuesta del departamento.`;
+  }
+  await sumarMes(uid, campo);
+  return null;
+}
+
 rutasChat.post(
   '/chat',
   requiereSesion,
@@ -123,9 +143,13 @@ rutasChat.post(
     if (!texto && !adjuntos.length) throw peticionInvalida('Escribe algo o adjunta una foto.');
 
     const lim = leerLimites();
+    const limPlan = limitesDe(usuario.plan);
     const usadosHoy = await mensajesHoy(usuario.uid);
-    if (usadosHoy >= lim.mensajesPorUsuarioPorDia) {
-      throw new ErrorHttp(429, `Llegaste al límite de ${lim.mensajesPorUsuarioPorDia} mensajes por hoy. Mañana seguimos.`);
+    if (alcanzoLimite(limPlan.mensajesPorDia, usadosHoy)) {
+      if (usuario.plan === 'gratis') {
+        throw requierePremium(`Usaste tus ${limPlan.mensajesPorDia} mensajes gratis de hoy. Mañana tienes más, o pasa a Premium para conversar sin esperar.`);
+      }
+      throw new ErrorHttp(429, `Llegaste al límite de ${limPlan.mensajesPorDia} mensajes por hoy. Mañana seguimos.`);
     }
 
     // Conversación
@@ -165,6 +189,7 @@ rutasChat.post(
       let enVivo = '';
       const resultado = await correrDirector({
         ctx,
+        permitirDepartamento: (dep) => permitirDepartamento(usuario.uid, usuario.plan, dep),
         historial,
         adjuntosActuales: partesAdjuntos,
         onDepartamento: (agente, estado) => enviar(res, { tipo: 'departamento', agente, estado }),

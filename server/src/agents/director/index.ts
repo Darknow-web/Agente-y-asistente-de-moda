@@ -36,6 +36,8 @@ export interface OpcionesDirector {
   onTexto?: (delta: string) => void;
   /** El Director empieza otra vuelta: lo transmitido hasta ahora era provisional. */
   onNuevaVuelta?: () => void;
+  /** Devuelve un motivo si el plan no permite usar ese departamento ahora (cupo agotado); null si se permite. */
+  permitirDepartamento?: (dep: Departamento) => Promise<string | null>;
   senal?: AbortSignal;
 }
 
@@ -53,6 +55,8 @@ export async function correrDirector(op: OpcionesDirector): Promise<ResultadoDir
     if (nombre !== 'delegar_a') return ejecutarBase(nombre, a);
     const dep = String(a.departamento) as Departamento;
     if (!(DEPARTAMENTOS_DELEGABLES as readonly string[]).includes(dep)) return { error: `Departamento desconocido: ${dep}` };
+    const bloqueo = await op.permitirDepartamento?.(dep);
+    if (bloqueo) return { noDisponible: bloqueo };
     departamentos.push(dep);
     op.onDepartamento?.(dep, 'trabajando');
     try {

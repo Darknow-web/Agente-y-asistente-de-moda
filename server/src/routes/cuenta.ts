@@ -23,7 +23,7 @@ import {
   resumenConsumoMes,
 } from '../data/repos.js';
 import { asincrono, noEncontrado, peticionInvalida } from '../util/errores.js';
-import { leerLimites } from '../config/limites.js';
+import { limitesDe } from '../config/planes.js';
 
 export const rutasCuenta = ExpressRouter();
 
@@ -43,7 +43,9 @@ rutasCuenta.get(
       invitado: u.invitado,
       admin: u.admin,
       perfil,
-      mensajesRestantesHoy: Math.max(0, leerLimites().mensajesPorUsuarioPorDia - usados),
+      mensajesRestantesHoy: Math.max(0, limitesDe(u.plan).mensajesPorDia - usados),
+      plan: u.plan,
+      origenPlan: u.origenPlan,
     };
     res.json(respuesta);
   }),

@@ -139,7 +139,7 @@ AI Studio no trae los cambios nuevos de GitHub por sí solo. Dos opciones:
   nunca se borra: desde la prenda, "Ver original" lo restaura.
 - **Alisado de arrugas**: usa el modelo de imagen de Gemini (`modelos.json › imagen`), unos 4 centavos por foto.
   Solo se aplica cuando Guardarropa marcó la foto como arrugada o cuando el cliente pulsa **Mejorar foto**, y
-  hasta `retoquesPorUsuarioPorDia` veces al día (limites.json, 10 por defecto). Después, Guardarropa compara
+  hasta `mejorarFotoPorDia` veces al día (planes.json: 10 en Premium, 0 en Gratis). Después, Guardarropa compara
   original y resultado y descarta el retoque si la prenda cambió.
 - **Memoria del servicio**: 2 GiB. En AI Studio el servicio de Cloud Run se crea con la memoria por defecto;
   si las fotos no se recortan y el registro dice "memory limit exceeded", entra en

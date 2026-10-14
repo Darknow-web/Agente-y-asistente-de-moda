@@ -2,14 +2,21 @@
  * Contrato de la API entre cliente y servidor.
  * Autenticación: cabecera `Authorization: Bearer <ID token de Firebase>` en todas las rutas
  * salvo /api/salud (pública) y /api/jobs/* (cabecera `x-jobs-secret`).
- * Todas las respuestas de error tienen la forma { error: string, detalle?: string }.
+ * Todas las respuestas de error tienen la forma { error: string, detalle?: string, codigo?: string }.
+ * codigo 'requiere-premium' (HTTP 402): la acción no está en el plan Gratis o se agotó su cupo.
  */
 import type {
   Adjunto,
   Ajuste,
   Aviso,
   Conversacion,
+  EstadoSuscripcion,
+  LimitesPlan,
   NombreAgente,
+  NombrePlan,
+  OrigenPlan,
+  PeriodoPago,
+  Reclamacion,
   NivelAjuste,
   Perfil,
   PlanDia,
@@ -23,6 +30,7 @@ import type {
 export interface ErrorApi {
   error: string;
   detalle?: string;
+  codigo?: 'requiere-premium';
 }
 
 // GET /api/salud  (pública)
@@ -41,6 +49,8 @@ export interface RespYo {
   perfil: Perfil;
   /** cuántos mensajes le quedan hoy */
   mensajesRestantesHoy: number;
+  plan: NombrePlan;
+  origenPlan: OrigenPlan;
 }
 
 // PUT /api/perfil  body: Partial<Perfil> → Perfil
@@ -195,6 +205,37 @@ export interface RespResumenUso {
   porAgente: { agente: NombreAgente; llamadas: number; usd: number }[];
   porUsuario: { uid: string; email?: string; llamadas: number; usd: number }[];
 }
+
+// ---------------------------------------------------------------- plan y suscripción
+// GET /api/suscripcion[?preapproval_id=...]  → estado, límites, usos y precios.
+//   Con preapproval_id (al volver de Mercado Pago) el servidor relee esa suscripción en Mercado Pago.
+export interface RespSuscripcion {
+  plan: NombrePlan;
+  origen: OrigenPlan;
+  suscripcion: { estado: EstadoSuscripcion; periodo?: PeriodoPago; vigenteHasta?: string; pruebaUsada?: boolean; emailPagador?: string } | null;
+  limites: LimitesPlan;
+  planes: Record<NombrePlan, LimitesPlan>;
+  usos: { prendas: number; mensajesHoy: number; mejorarFotoHoy: number; probadorMes: number; comprasMes: number };
+  precios: { moneda: string; mensual: number; anual: number; pruebaDias: number };
+  /** false si el servidor aún no tiene MP_ACCESS_TOKEN: la página muestra "pronto". */
+  pagosConfigurados: boolean;
+}
+// POST /api/suscripcion/checkout → { url } de Mercado Pago
+export interface ReqCheckout {
+  periodo: PeriodoPago;
+  /** Correo de la cuenta de Mercado Pago con la que pagará (Mercado Pago lo exige igual al del pagador). */
+  emailMercadoPago: string;
+}
+export interface RespCheckout {
+  url: string;
+}
+// POST /api/suscripcion/cancelar → RespSuscripcion (Premium sigue hasta vigenteHasta)
+// POST /api/pagos/mercadopago/webhook  (Mercado Pago; firma x-signature)
+
+// ---------------------------------------------------------------- libro de reclamaciones
+// POST /api/reclamaciones (sin sesión obligatoria) → { id }
+export type ReqReclamacion = Omit<Reclamacion, 'id' | 'creadaEn' | 'estado' | 'uid'>;
+// GET /api/reclamaciones (admin) → Reclamacion[]
 
 // ---------------------------------------------------------------- tareas programadas (cabecera x-jobs-secret)
 // POST /api/jobs/look-del-dia · POST /api/jobs/plan-semanal · POST /api/jobs/recordatorios-lavado
