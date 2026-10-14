@@ -59,15 +59,26 @@ export function diasDesde(iso: string | undefined, ahora = Date.now()): number |
   return Math.max(0, Math.floor((ahora - t) / 86400000));
 }
 
-/** Tabla compacta del armario: una línea por prenda. */
-export function tablaArmario(prendas: Prenda[], max = 120): string {
+/**
+ * Tabla compacta del armario: una línea por prenda. Marca lo usado en las dos últimas semanas para que los
+ * agentes roten y lo dormido o sin estrenar para que lo saquen. Cabe un armario grande entero: si los agentes
+ * no ven una prenda, nunca la proponen.
+ */
+export function tablaArmario(prendas: Prenda[], max = 250): string {
   if (!prendas.length) return 'El armario está vacío: aún no ha registrado prendas.';
   const filas = prendas.slice(0, max).map((p) => {
     const usos = `${p.usosDesdeLavado ?? 0}/${p.usosMaxAntesDeLavar ?? '?'}`;
     const extra = [p.tela, p.temporada, p.ocasiones?.join('/'), p.marca].filter(Boolean).join(' · ');
     const sinUso = p.ultimoUso ? diasDesde(p.ultimoUso) : diasDesde(p.creadaEn);
-    const dormida = sinUso !== undefined && sinUso >= 60 ? ` | sin uso ${sinUso} días` : !p.ultimoUso && !p.usosTotales ? ' | sin estrenar' : '';
-    return `${p.id} | ${p.nombre} | ${p.categoria}${p.subtipo ? '/' + p.subtipo : ''} | ${p.colores.join(', ')} | ${p.estado} (usos ${usos})${extra ? ' | ' + extra : ''}${p.favorita ? ' | favorita' : ''}${dormida}`;
+    const uso =
+      sinUso !== undefined && sinUso >= 60
+        ? ` | sin uso ${sinUso} días`
+        : !p.ultimoUso && !p.usosTotales
+          ? ' | sin estrenar'
+          : p.ultimoUso && sinUso !== undefined && sinUso < 14
+            ? ` | usada hace ${sinUso} días`
+            : '';
+    return `${p.id} | ${p.nombre} | ${p.categoria}${p.subtipo ? '/' + p.subtipo : ''} | ${p.colores.join(', ')} | ${p.estado} (usos ${usos})${extra ? ' | ' + extra : ''}${p.favorita ? ' | favorita' : ''}${uso}`;
   });
   const nota = prendas.length > max ? `\n(… y ${prendas.length - max} prendas más; pide la lista completa con la herramienta si hace falta)` : '';
   return `id | nombre | categoría | colores | estado (usos desde lavado / máx) | detalles\n${filas.join('\n')}${nota}`;

@@ -17,7 +17,7 @@ const POR_DEFECTO: ConfigPlanes = {
   accesoAbierto: true,
   precios: { moneda: 'PEN', mensual: 19.9, anual: 179, pruebaDias: 7 },
   planes: {
-    gratis: { prendasMax: 30, mensajesPorDia: 10, rehacerSemana: false, planSemanalAutomatico: false, mejorarFotoPorDia: 0, fotoCatalogoAutomatica: false, probadorPorMes: 3, comprasPorMes: 3 },
+    gratis: { prendasMax: 100, mensajesPorDia: 10, rehacerSemana: false, planSemanalAutomatico: false, mejorarFotoPorDia: 0, fotoCatalogoAutomatica: false, probadorPorMes: 3, comprasPorMes: 3 },
     premium: { prendasMax: null, mensajesPorDia: 60, rehacerSemana: true, planSemanalAutomatico: true, mejorarFotoPorDia: 30, fotoCatalogoAutomatica: true, probadorPorMes: null, comprasPorMes: null },
   },
 };
@@ -90,4 +90,32 @@ export function alcanzoLimite(limite: number | null, usados: number): boolean {
 /** Cuántos le quedan (null = sin límite). */
 export function restantes(limite: number | null, usados: number): number | null {
   return limite === null ? null : Math.max(0, limite - usados);
+}
+
+/** Días de anticipación del aviso antes de un cobro: el fin de la prueba y la renovación anual. */
+export const AVISO_COBRO_DIAS = { prueba: 2, anual: 7 } as const;
+
+/**
+ * Aviso antes de cobrar, para que nadie se lleve la sorpresa de un cobro automático. Puro (probado).
+ * `fechaCobro` y `hoy` en YYYY-MM-DD de la zona del usuario. Las mensualidades no se avisan cada mes.
+ */
+export function avisoDeCobro(s: Suscripcion | null, hoy: string, fechaCobro: string | null, config = leerPlanes()): { titulo: string; cuerpo: string } | null {
+  if (!s || s.plan !== 'premium' || !fechaCobro) return null;
+  const dias = Math.round((Date.parse(`${fechaCobro}T12:00:00Z`) - Date.parse(`${hoy}T12:00:00Z`)) / 86400000);
+  const fecha = new Date(`${fechaCobro}T12:00:00Z`).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const periodo = s.periodo === 'anual' ? 'anual' : 'mensual';
+  const monto = `S/ ${precioDe(periodo, config).toFixed(2)}`;
+  if (s.estado === 'prueba' && dias === AVISO_COBRO_DIAS.prueba) {
+    return {
+      titulo: `Tu prueba de Premium termina el ${fecha}`,
+      cuerpo: `Ese día se cobra el primer pago ${periodo} de ${monto}. Si no quieres seguir, cancélalo antes en Plan y no pagas nada.`,
+    };
+  }
+  if (s.estado === 'activa' && s.periodo === 'anual' && dias === AVISO_COBRO_DIAS.anual) {
+    return {
+      titulo: `Tu Premium anual se renueva el ${fecha}`,
+      cuerpo: `Ese día se cobran ${monto}. Si no quieres renovar, cancélalo antes en Plan; sigues con Premium hasta esa fecha.`,
+    };
+  }
+  return null;
 }

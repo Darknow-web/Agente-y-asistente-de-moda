@@ -10,7 +10,7 @@
 import { Router as ExpressRouter } from 'express';
 import type { RespJob } from '@shared/api.js';
 import { requiereSecretoJobs } from '../auth/middleware.js';
-import { actualizarDeseo, existeAvisoHoy, guardarPlan, leerPlan, listarDeseos, listarUsuariosActivos, actualizarPrenda } from '../data/repos.js';
+import { actualizarDeseo, existeAvisoHoy, guardarPlan, leerPlan, leerSuscripcion, listarDeseos, listarUsuariosActivos, actualizarPrenda } from '../data/repos.js';
 import { anotarDiario, avisar } from '../data/avisar.js';
 import { asincrono } from '../util/errores.js';
 import { construirContexto } from '../memory/construir.js';
@@ -18,7 +18,7 @@ import { generarSemana, lookDelDia } from '../agents/planificacion/index.js';
 import { formasDeUso } from '../agents/estilismo/index.js';
 import { resumenArmario } from './armario.js';
 import { ahora, fechaLocal, lunesDe, sumarDias } from '../util/ids.js';
-import { limitesDe } from '../config/planes.js';
+import { avisoDeCobro, limitesDe } from '../config/planes.js';
 import { planDeUsuario } from '../auth/plan.js';
 import { pulirFotoDePrenda } from '../imagenes/pulir.js';
 import type { Prenda } from '@shared/types.js';
@@ -117,6 +117,7 @@ rutasJobs.post(
  *  - Ropa dormida: una vez por semana (lunes), resumen de lo que lleva 60+ días sin uso y su valor.
  *  - Deseos en enfriamiento: a los 7 días, "¿sigues queriéndolo?" con qué lo combinaría (Estilismo).
  *  - Fotos de catálogo pendientes (Premium): continúa las que no entraron en el cupo de ayer.
+ *  - Aviso antes de cobrar: dos días antes de que termine la prueba y una semana antes de renovar el anual.
  */
 rutasJobs.post(
   '/jobs/diario',
@@ -198,6 +199,13 @@ rutasJobs.post(
             datos: { deseoId: d.id },
           });
           hechos.push(`deseo ${d.nombre}`);
+        }
+
+        const suscripcion = await leerSuscripcion(uid);
+        const cobro = avisoDeCobro(suscripcion, hoy, suscripcion?.vigenteHasta ? fechaLocal(new Date(suscripcion.vigenteHasta), ctx.zona) : null);
+        if (cobro && !(await existeAvisoHoy(uid, 'sistema'))) {
+          await avisar(uid, { tipo: 'sistema', ...cobro, url: '/plan' });
+          hechos.push('aviso de cobro');
         }
 
         const fotos = await continuarFotosCatalogo(uid, email, ctx.prendas);

@@ -8,7 +8,7 @@ valor de verdad. **Premium** quita los límites. Se cobra con **Mercado Pago** (
 | | Gratis | Premium |
 |---|---|---|
 | Conversar con Sastra | 10 mensajes al día | 60 al día |
-| Prendas en el armario | 30 | sin límite |
+| Prendas en el armario | 100 | sin límite |
 | Look del día, recorte de fondo, avisos, diario | sí | sí |
 | Plan de la semana | una vez por semana, sin rehacer | automático cada domingo y rehacer cuando quieras |
 | Fotos de catálogo con IA | no (recorte de fondo gratis) | automáticas, hasta 30 al día |
@@ -16,6 +16,16 @@ valor de verdad. **Premium** quita los límites. Se cobra con **Mercado Pago** (
 | Compras con precios reales | 3 consultas al mes | sin límite |
 
 Precio: **S/ 19.90 al mes** o **S/ 179 al año** (25 % menos), con **7 días de prueba** gratis una sola vez.
+
+Tres reglas que vienen de las reseñas de la competencia (Modesona, Google Play, 2026), donde la queja número uno
+es un límite gratis de 50 prendas y la segunda, un cobro sin aviso:
+
+- **El armario no es lo que se cobra.** Subir una prenda cuesta menos de medio centavo, así que Gratis guarda 100;
+  Premium se distingue por lo que sí cuesta (fotos de catálogo, probador, plan automático, más mensajes).
+- **Nadie se lleva un cobro por sorpresa.** La tarea diaria avisa (en la app y por notificación) dos días antes de
+  que termine la prueba y una semana antes de renovar el plan anual (`avisoDeCobro` en `planes.ts`).
+- **Dejar Premium no quita nada.** La sesión, el armario, las fotos y los planes quedan tal cual; solo se frena lo
+  nuevo que pase del límite.
 
 ## Dónde se cambia cada cosa
 

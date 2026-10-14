@@ -96,14 +96,14 @@ async function llamar(ruta: string, cuerpo: unknown, usuario = 'u1', cabeceras: 
 
 describe('límites del plan Gratis', () => {
   it('armario lleno: catalogar devuelve 402 antes de llamar a la IA', async () => {
-    estado.prendas = 30;
+    estado.prendas = 100;
     const r = await llamar('/api/prendas/catalogar', { foto: FOTO });
     expect(r.status).toBe(402);
     expect(r.json.codigo).toBe('requiere-premium');
   });
 
   it('crear prenda con el armario lleno también se frena', async () => {
-    estado.prendas = 30;
+    estado.prendas = 100;
     const r = await llamar('/api/prendas', { prenda: { nombre: 'Polo', categoria: 'superior', colores: [] } });
     expect(r.status).toBe(402);
   });

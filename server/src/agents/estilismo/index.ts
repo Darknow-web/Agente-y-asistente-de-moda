@@ -26,10 +26,15 @@ const ESQUEMA = {
   required: ['formas'],
 };
 
-export async function formasDeUso(ctx: ContextoCliente, prenda: Prenda): Promise<{ formas: FormaDeUso[]; costoUsd: number }> {
+export async function formasDeUso(ctx: ContextoCliente, prenda: Prenda, yaVistas: FormaDeUso[] = []): Promise<{ formas: FormaDeUso[]; costoUsd: number }> {
+  const nombre = (id: string) => ctx.prendas.find((p) => p.id === id)?.nombre ?? id;
   const encargo = [
     `Propón tres formas distintas de ponerse esta prenda del cliente: ${prenda.nombre} (id ${prenda.id}, ${prenda.categoria}${prenda.subtipo ? '/' + prenda.subtipo : ''}, colores ${prenda.colores.join(', ')}${prenda.tela ? ', ' + prenda.tela : ''}).`,
     'Cada forma debe usar solo prendas reales del armario (ids exactos de la tabla), para ocasiones distintas (por ejemplo trabajo, fin de semana, salida).',
+    'Las tres deben cambiar las piezas principales que acompañan (superior, inferior o capa), no solo el calzado o un accesorio. Entre dos opciones que sirven igual, elige la que lleva más tiempo sin usarse.',
+    ...(yaVistas.length
+      ? [`El cliente ya vio estas y pidió otras; no repitas ninguna ni sus mismas piezas principales: ${yaVistas.map((f) => `${f.titulo} (${f.prendaIds.map(nombre).join(', ')})`).join('; ')}.`]
+      : []),
     'Si el armario no da para completar una forma, deja los ids que sí existan y escribe en "faltaria" la única pieza que la completaría.',
     'Respeta el estilo y lo que evita el cliente. Devuelve solo el JSON del esquema.',
   ].join('\n');

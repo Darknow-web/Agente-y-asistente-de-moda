@@ -242,7 +242,7 @@ export function Plan() {
               {!datos.pagosConfigurados
                 ? 'Los pagos se activan muy pronto.'
                 : conPrueba
-                  ? `No se cobra nada durante ${precios.pruebaDias} días. Si cancelas antes, no pagas. Después se cobra ${soles(periodo === 'mensual' ? precios.mensual : precios.anual)} ${periodo === 'mensual' ? 'cada mes' : 'cada año'}.`
+                  ? `No se cobra nada durante ${precios.pruebaDias} días y te avisamos dos días antes de que termine. Si cancelas antes, no pagas. Después se cobra ${soles(periodo === 'mensual' ? precios.mensual : precios.anual)} ${periodo === 'mensual' ? 'cada mes' : 'cada año'}.`
                   : 'Cancelas cuando quieras desde aquí; Premium sigue hasta el final de lo que pagaste.'}
             </p>
           </section>
@@ -253,7 +253,8 @@ export function Plan() {
             {confirmarCancelar ? (
               <div className="flex flex-col gap-3 border-t border-[var(--linea)] pt-4">
                 <p className="m-0 text-[14px] leading-[1.5] text-[var(--texto-2)]">
-                  No habrá más cobros. Sigues con Premium hasta el final del periodo que ya pagaste (o de tu prueba).
+                  No habrá más cobros. Sigues con Premium hasta el final del periodo que ya pagaste (o de tu prueba). Después
+                  no pierdes nada: tu armario, tus fotos y tus planes se quedan tal como están.
                 </p>
                 <div className="flex gap-3">
                   <button type="button" className="boton flex-1" disabled={ocupado !== null} onClick={() => void cancelar()}>

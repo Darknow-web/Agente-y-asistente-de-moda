@@ -70,7 +70,7 @@ rutasArmario.post(
     const vigentes = prenda.formasDeUso?.length && req.query.regenerar !== '1';
     if (vigentes) return res.json(prenda);
     if (ctx.prendas.length < 3) throw peticionInvalida('Con menos de tres prendas en el armario no hay con qué combinarla todavía.');
-    const { formas } = await formasDeUso(ctx, prenda);
+    const { formas } = await formasDeUso(ctx, prenda, req.query.regenerar === '1' ? (prenda.formasDeUso ?? []) : []);
     if (!formas.length) throw new Error('Estilismo no pudo proponer formas de uso ahora. Inténtalo de nuevo en un momento.');
     const actualizada = await actualizarPrenda(ctx.uid, prenda.id, { formasDeUso: formas, formasDeUsoEn: ahora() });
     res.json(actualizada ?? { ...prenda, formasDeUso: formas });

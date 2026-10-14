@@ -10,7 +10,7 @@
   },
   "planes": {
     "gratis": {
-      "prendasMax": 30,
+      "prendasMax": 100,
       "mensajesPorDia": 10,
       "rehacerSemana": false,
       "planSemanalAutomatico": false,
@@ -30,5 +30,6 @@
       "comprasPorMes": null
     }
   },
+  "_prendasMax": "Gratis guarda 100 prendas: subir una cuesta menos de medio centavo (catalogar con Gemini Flash; el recorte de fondo es gratis). El límite bajo de prendas es la queja número uno en la competencia; lo que sí cuesta (fotos de catálogo, probador, plan automático) es lo que distingue a Premium.",
   "_fotosCatalogo": "mejorarFotoPorDia: fotos de catálogo con IA por día (≈ US$0.045 cada una). fotoCatalogoAutomatica: las prendas nuevas salen así sin pedirlo."
 }
