@@ -24,6 +24,16 @@ function variablesDeTexto(env: Env): Record<string, string> {
   return salida;
 }
 
+/** SHA-256 de las variables ordenadas por nombre (no se guarda ningún valor, solo la huella). */
+async function huellaDe(variables: Record<string, string>): Promise<string> {
+  const texto = Object.keys(variables)
+    .sort()
+    .map((k) => `${k}=${variables[k]}`)
+    .join('\n');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export class Sastra extends Container<Env> {
   defaultPort = 8080;
   sleepAfter = '15m';
@@ -31,6 +41,25 @@ export class Sastra extends Container<Env> {
   constructor(ctx: ConstructorParameters<typeof Container<Env>>[0], env: Env) {
     super(ctx, env);
     this.envVars = { ...variablesDeTexto(env), NODE_ENV: 'production', PORT: '8080' };
+  }
+
+  /**
+   * Las variables llegan al contenedor solo al arrancar. Si cambian los secretos en el panel, el Durable Object se
+   * reinicia pero el contenedor que ya corría seguiría con los valores viejos hasta dormirse. Por eso se guarda una
+   * huella de las variables y, si no coincide con la del contenedor en marcha, se detiene: la petición lo vuelve a
+   * arrancar con las nuevas.
+   */
+  override async fetch(request: Request): Promise<Response> {
+    const huella = await huellaDe(this.envVars ?? {});
+    const anterior = await this.ctx.storage.get<string>('huella-variables');
+    if (anterior !== huella) {
+      if (this.ctx.container?.running) {
+        console.log('[sastra] cambiaron las variables: se reinicia el contenedor');
+        await this.stop().catch((e: unknown) => console.warn('[sastra] no se pudo detener el contenedor:', e));
+      }
+      await this.ctx.storage.put('huella-variables', huella);
+    }
+    return super.fetch(request);
   }
 
   override onError(error: unknown) {
