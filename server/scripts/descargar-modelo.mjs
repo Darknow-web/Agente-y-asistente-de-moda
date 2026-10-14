@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process, console, fetch */
 /**
  * Descarga el modelo de recorte de fondo (U2Net en ONNX, Apache 2.0, 176 MB) a ./modelos.
  * Lo ejecuta el Dockerfile al construir la imagen y `npm run modelo:recorte` en local.
