@@ -30,7 +30,7 @@ import type {
 export interface ErrorApi {
   error: string;
   detalle?: string;
-  codigo?: 'requiere-premium';
+  codigo?: 'requiere-premium' | 'cupo-fotos';
 }
 
 // GET /api/salud  (pública)
@@ -76,12 +76,21 @@ export interface RespCatalogar {
 }
 
 // POST /api/prendas  body: { prenda: Omit<Prenda,'id'|'creadaEn'|'actualizadaEn'>, foto?: Adjunto } → Prenda
+export interface RespFotosCatalogo {
+  /** Prendas por convertir, en orden; el cliente las procesa una a una con /foto/mejorar. */
+  pendientes: string[];
+  /** Cuántas quedan hoy en el cupo diario; las demás las sigue la tarea diaria. */
+  cupoHoy: number;
+}
+
 export interface ReqCrearPrenda {
   prenda: Omit<Prenda, 'id' | 'creadaEn' | 'actualizadaEn'>;
   foto?: Adjunto;
 }
-// POST /api/prendas/:id/foto/pulir   → Prenda  (recorte gratuito; alisado con IA solo si la foto vino arrugada y queda cupo)
-// POST /api/prendas/:id/foto/mejorar → Prenda  (botón "Mejorar foto": alisado con IA + recorte; descuenta del cupo diario)
+// POST /api/prendas/:id/foto/pulir   → Prenda  (recorte gratuito; en Premium, foto de catálogo con IA si queda cupo)
+// POST /api/prendas/:id/foto/mejorar → Prenda  (botón "Mejorar foto": foto de catálogo con IA; 429 codigo 'cupo-fotos' al agotar el día;
+//                                              422 si la IA no logró una foto fiel y se dejó la original)
+// POST /api/armario/fotos-catalogo   → RespFotosCatalogo (Premium: marca pendientes todas las prendas sin foto de catálogo)
 // POST /api/prendas/:id/foto/original → Prenda (vuelve a la foto tal como se subió)
 // PATCH /api/prendas/:id  body: Partial<Prenda> → Prenda
 // DELETE /api/prendas/:id → { ok: true }

@@ -201,16 +201,18 @@ bucket) se sigue leyendo de `firebase-applet-config.json`.
 
 Precios y límites: `server/src/config/planes.json` (ver docs/MONETIZACION.md).
 
-## Fotos: recorte de fondo y alisado
+## Fotos: recorte de fondo y foto de catálogo
 
 - **Recorte de fondo y luz nivelada**: gratis y automático. Al guardar una prenda, el servidor quita el fondo con
   un modelo abierto (U2Net, dentro de la imagen de Docker) y centra la prenda sobre el lino en 4:5. Si el modelo
   no detecta la prenda (foto sin márgenes, prenda amontonada), la foto se queda como se subió. El original
   nunca se borra: desde la prenda, "Ver original" lo restaura.
-- **Alisado de arrugas**: usa el modelo de imagen de Gemini (`modelos.json › imagen`), unos 4 centavos por foto.
-  Solo se aplica cuando Guardarropa marcó la foto como arrugada o cuando el cliente pulsa **Mejorar foto**, y
-  hasta `mejorarFotoPorDia` veces al día (planes.json: 10 en Premium, 0 en Gratis). Después, Guardarropa compara
-  original y resultado y descarta el retoque si la prenda cambió.
+- **Foto de catálogo con IA** (Premium): el modelo de imagen de Gemini (`modelos.json › imagen`) deja la prenda
+  planchada, de frente y sobre el lino, unos 4,5 centavos por prenda. Se genera sola en cada prenda nueva, con el
+  botón **Mejorar foto** o con **Pasar mi armario a foto de catálogo**, hasta `mejorarFotoPorDia` al día
+  (planes.json: 30 en Premium, 0 en Gratis); lo que no entra hoy lo continúa la tarea diaria. Guardarropa compara
+  original y resultado y, si la prenda cambió, se queda la foto real. `/api/salud` avisa si la llave de Gemini
+  no tiene acceso a ningún modelo de imagen.
 - **Memoria del servicio**: 2 GiB. En AI Studio el servicio de Cloud Run se crea con la memoria por defecto;
   si las fotos no se recortan y el registro dice "memory limit exceeded", entra en
   [console.cloud.google.com/run](https://console.cloud.google.com/run) › el servicio › **Editar e implementar

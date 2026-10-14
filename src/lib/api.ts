@@ -27,6 +27,7 @@ import type {
   ReqRespuestaPregunta,
   RespAvisos,
   RespCatalogar,
+  RespFotosCatalogo,
   RespClavePush,
   RespHoy,
   RespIndiceCompra,
@@ -140,10 +141,11 @@ export const api = {
   registrarUso: (id: string, contexto?: string, ajuste?: ReqRegistrarUso['ajuste']) =>
     post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/uso`, { contexto: contexto || undefined, ajuste } satisfies ReqRegistrarUso),
   marcarLavada: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/lavada`),
-  /** Pulido en segundo plano tras subir (recorte gratuito; alisado solo si vino arrugada). `keepalive`: sigue aunque se cambie de pantalla. */
+  /** Pulido en segundo plano tras subir (recorte gratuito; en Premium, foto de catálogo con IA). `keepalive`: sigue aunque se cambie de pantalla. */
   pulirFoto: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/pulir`, undefined, { keepalive: true }),
   mejorarFoto: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/mejorar`),
   fotoOriginal: (id: string) => post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/foto/original`),
+  fotosCatalogo: () => post<RespFotosCatalogo>('/api/armario/fotos-catalogo'),
   formasDeUso: (id: string, regenerar = false) =>
     post<Prenda>(`/api/prendas/${encodeURIComponent(id)}/formas${regenerar ? '?regenerar=1' : ''}`),
   resumenArmario: () => get<RespResumenArmario>('/api/armario/resumen'),

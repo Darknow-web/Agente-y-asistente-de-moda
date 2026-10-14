@@ -1,8 +1,8 @@
 /**
- * Alisado de arrugas con IA generativa (Gemini de imagen) y verificación de fidelidad.
+ * Foto de catálogo con IA generativa (Gemini de imagen) y verificación de fidelidad.
  *
- * Cuesta unos 4 centavos por foto, así que solo se usa cuando Guardarropa marcó la foto como
- * arrugada o cuando el cliente pulsa "Mejorar foto", y siempre dentro del cupo diario
+ * Cuesta unos 4 centavos por foto. En Premium se aplica sola a cada prenda nueva y, a pedido, con el botón
+ * "Mejorar foto" o "Pasar mi armario a foto de catálogo"; siempre dentro del cupo diario
  * (planes.json → mejorarFotoPorDia; en el plan Gratis es 0).
  *
  * El modelo repinta la prenda, y podría cambiar un estampado o un color. Por eso, después, el
@@ -15,11 +15,14 @@ import { type ProveedorGemini } from '../ai/gemini.js';
 import { registrarConsumo } from '../data/repos.js';
 import { leerLimites } from '../config/limites.js';
 
-const INSTRUCCION_ALISADO = [
-  'Edit this photo of a garment. Smooth out all wrinkles and creases so the fabric looks freshly ironed and laid flat.',
-  'Keep EVERYTHING else identical: same garment, same cut, same colors, same print, logos, buttons, stitching, labels and proportions.',
-  'Place the garment on a plain, evenly lit, light warm-beige background (#EEEAE1). No people, no text, no extra objects, no shadows of other items.',
-  'Photorealistic product photo, front view, centered. Do not crop any part of the garment.',
+/** Foto de catálogo: la misma prenda, fotografiada como producto de tienda sobre el lino de la marca. */
+const INSTRUCCION_CATALOGO = [
+  'Turn this photo of a garment into a clean e-commerce catalog product photo of the SAME garment.',
+  'The garment must look freshly ironed, without wrinkles, centered, front view, entirely visible and not cropped.',
+  'Tops, shirts, dresses and jackets: invisible ghost mannequin (3D shape, no person, no hanger). Trousers, skirts, shoes and accessories: neatly laid out or standing alone.',
+  'Keep EVERYTHING about the garment identical: same cut, same exact colors, same fabric texture, same print, logos, text, buttons, zippers, stitching and labels. Do not add or remove details.',
+  'Background: plain, seamless, evenly lit warm light beige (#EEEAE1) with a soft natural shadow under the garment. No people, no text overlays, no props, no other garments.',
+  'Photorealistic studio product photography, soft diffused light.',
 ].join(' ');
 
 const ESQUEMA_FIDELIDAD = {
@@ -31,22 +34,22 @@ const ESQUEMA_FIDELIDAD = {
   required: ['mismaPrenda', 'motivo'],
 };
 
-export interface ResultadoAlisado {
+export interface ResultadoCatalogo {
   datos: Buffer;
   mime: string;
   costoUsd: number;
   modelo: string;
 }
 
-export function alisadoDisponible(): boolean {
+export function catalogoDisponible(): boolean {
   return router.proveedorDisponible('gemini') && modelosImagen().length > 0;
 }
 
 /**
- * Devuelve la foto alisada o null si el resultado no pasó la verificación de fidelidad.
+ * Devuelve la foto de catálogo o null si el resultado no pasó la verificación de fidelidad.
  * Lanza ErrorProveedor si ningún modelo de imagen respondió.
  */
-export async function alisarFoto(uid: string, foto: { datos: Buffer; mime: string }): Promise<ResultadoAlisado | null> {
+export async function generarFotoCatalogo(uid: string, foto: { datos: Buffer; mime: string }): Promise<ResultadoCatalogo | null> {
   const gemini = router.obtenerProveedor('gemini') as ProveedorGemini;
   const candidatos = modelosImagen();
   if (!candidatos.length) throw new ErrorProveedor('No hay un modelo de imagen configurado en modelos.json ("imagen.modelos").', 'gemini', false);
@@ -55,13 +58,13 @@ export async function alisarFoto(uid: string, foto: { datos: Buffer; mime: strin
   let ultimo: ErrorProveedor | null = null;
   for (const modelo of candidatos) {
     try {
-      const r = await gemini.generarImagen(modelo, { instruccion: INSTRUCCION_ALISADO, imagen: { mime: foto.mime, base64: foto.datos.toString('base64') }, senal });
+      const r = await gemini.generarImagen(modelo, { instruccion: INSTRUCCION_CATALOGO, imagen: { mime: foto.mime, base64: foto.datos.toString('base64') }, senal });
       const costo = estimarCostoUsd('gemini', modelo, r.tokensEntrada, r.tokensSalida);
       await registrarConsumo(uid, { agente: 'guardarropa', proveedor: 'gemini', modelo, tokensEntrada: r.tokensEntrada, tokensSalida: r.tokensSalida, costoEstimadoUsd: costo, fecha: new Date().toISOString() }).catch(() => undefined);
       const resultado = { datos: Buffer.from(r.base64, 'base64'), mime: r.mime, costoUsd: costo, modelo };
       const fiel = await esLaMismaPrenda(uid, foto, resultado);
       if (!fiel.misma) {
-        console.warn(`[imagenes] alisado descartado (${modelo}): ${fiel.motivo}`);
+        console.warn(`[imagenes] foto de catálogo descartada (${modelo}): ${fiel.motivo}`);
         return null;
       }
       return { ...resultado, costoUsd: costo + fiel.costoUsd };
@@ -85,7 +88,7 @@ async function esLaMismaPrenda(uid: string, original: { datos: Buffer; mime: str
         {
           rol: 'usuario',
           partes: [
-            { tipo: 'texto', texto: 'Primera foto: la prenda original. Segunda foto: la misma prenda retocada por IA para alisar arrugas. ¿La segunda muestra exactamente la misma prenda (corte, color, estampado, logos, botones, detalles)? Ignora el fondo, la luz y las arrugas.' },
+            { tipo: 'texto', texto: 'Primera foto: la prenda original. Segunda foto: la misma prenda convertida por IA en foto de catálogo. ¿La segunda muestra exactamente la misma prenda (corte, color, estampado, logos, botones, detalles)? Ignora el fondo, la luz, las arrugas, el ángulo y si va sobre maniquí invisible.' },
             { tipo: 'imagen', mime: original.mime, base64: original.datos.toString('base64') },
             { tipo: 'imagen', mime: retocada.mime, base64: retocada.datos.toString('base64') },
           ],

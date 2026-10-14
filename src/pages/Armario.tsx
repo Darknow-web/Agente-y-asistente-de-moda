@@ -11,6 +11,7 @@ import { EstadoVacio } from '@/components/EstadoVacio';
 import { Aviso } from '@/components/Aviso';
 import { TarjetaPrenda } from '@/components/TarjetaPrenda';
 import { IconoCamara } from '@/components/Iconos';
+import { FotosCatalogo } from '@/components/FotosCatalogo';
 
 export const NOMBRE_CATEGORIA: Record<CategoriaPrenda, string> = {
   superior: 'Superior',
@@ -39,7 +40,7 @@ const ORDEN: CategoriaPrenda[] = [
 type Filtro = CategoriaPrenda | 'todo' | 'dormidas' | 'sin-estrenar';
 
 export function Armario() {
-  const { datos: prendas, error, cargando } = useCarga(() => api.prendas());
+  const { datos: prendas, error, cargando, setDatos } = useCarga(() => api.prendas());
   const { datos: resumen } = useCarga(() => api.resumenArmario());
   const [params, setParams] = useSearchParams();
   const inicial = params.get('filtro');
@@ -152,6 +153,8 @@ export function Armario() {
               ) : null}
             </div>
           ) : null}
+
+          <FotosCatalogo prendas={prendas ?? []} onPrenda={(p) => setDatos((lista) => lista?.map((x) => (x.id === p.id ? p : x)) ?? lista)} />
 
           {filtro === 'dormidas' || filtro === 'sin-estrenar' ? (
             <p className="m-0 px-[var(--margen)] pt-4 text-[14px] leading-[1.5] text-[var(--texto-2)] lg:px-16">

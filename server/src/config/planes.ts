@@ -17,8 +17,8 @@ const POR_DEFECTO: ConfigPlanes = {
   accesoAbierto: true,
   precios: { moneda: 'PEN', mensual: 19.9, anual: 179, pruebaDias: 7 },
   planes: {
-    gratis: { prendasMax: 30, mensajesPorDia: 10, rehacerSemana: false, planSemanalAutomatico: false, mejorarFotoPorDia: 0, probadorPorMes: 3, comprasPorMes: 3 },
-    premium: { prendasMax: null, mensajesPorDia: 60, rehacerSemana: true, planSemanalAutomatico: true, mejorarFotoPorDia: 10, probadorPorMes: null, comprasPorMes: null },
+    gratis: { prendasMax: 30, mensajesPorDia: 10, rehacerSemana: false, planSemanalAutomatico: false, mejorarFotoPorDia: 0, fotoCatalogoAutomatica: false, probadorPorMes: 3, comprasPorMes: 3 },
+    premium: { prendasMax: null, mensajesPorDia: 60, rehacerSemana: true, planSemanalAutomatico: true, mejorarFotoPorDia: 30, fotoCatalogoAutomatica: true, probadorPorMes: null, comprasPorMes: null },
   },
 };
 

@@ -75,7 +75,11 @@ export interface FormaDeUso {
   faltaria?: string;
 }
 
-export type RetoqueFoto = 'recorte' | 'alisado';
+/**
+ * recorte: fondo quitado y luz nivelada (gratis) · alisado: arrugas suavizadas con IA (versiones anteriores)
+ * catalogo: foto de catálogo generada con IA · original: la persona eligió volver a su foto.
+ */
+export type RetoqueFoto = 'recorte' | 'alisado' | 'catalogo' | 'original';
 
 export interface Prenda {
   id: string;
@@ -96,10 +100,14 @@ export interface Prenda {
   fotoMiniUrl?: string;
   /** Foto tal como la subió el cliente, cuando `fotoUrl` es la versión pulida. */
   fotoOriginalUrl?: string;
-  /** Qué se le hizo a la foto: 'recorte' (fondo quitado y luz nivelada) o 'alisado' (además, arrugas suavizadas con IA). */
+  /** Qué se le hizo a la foto (ver RetoqueFoto). */
   fotoRetoque?: RetoqueFoto;
-  /** Guardarropa vio la prenda arrugada o con fondo sucio al catalogar: candidata al alisado. */
+  /** Guardarropa vio la prenda arrugada o con fondo sucio al catalogar: candidata a la foto de catálogo. */
   fotoArrugada?: boolean;
+  /** Espera su foto de catálogo (se acabó el cupo del día); la tarea diaria la continúa. */
+  fotoCatalogoPendiente?: boolean;
+  /** La IA no logró una foto fiel (cambiaba la prenda): no se reintenta solo, solo con el botón. */
+  fotoCatalogoDescartada?: boolean;
   notas?: string;
   favorita?: boolean;
   compradaEn?: string;
@@ -300,6 +308,8 @@ export interface LimitesPlan {
   rehacerSemana: boolean;
   planSemanalAutomatico: boolean;
   mejorarFotoPorDia: number;
+  /** Cada prenda nueva sale como foto de catálogo sin pedirlo (dentro del cupo diario). */
+  fotoCatalogoAutomatica: boolean;
   probadorPorMes: number | null;
   comprasPorMes: number | null;
 }
@@ -346,6 +356,8 @@ export interface RespuestaSalud {
   gemini: 'ok' | 'sin-llave' | 'error';
   claude: 'ok' | 'sin-llave' | 'error';
   modelos: { agente: NombreAgente; proveedor: string; modelo: string; valido: boolean; motivo?: 'sin-lista' | 'no-existe' }[];
+  /** Modelo de imagen para las fotos de catálogo (modelos.json › imagen): el primero disponible en la cuenta. */
+  imagen?: { modelo: string | null; disponible: boolean };
   modo: 'real' | 'simulado';
   detalles?: string[];
 }

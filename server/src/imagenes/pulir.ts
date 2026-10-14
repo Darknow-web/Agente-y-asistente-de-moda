@@ -1,32 +1,47 @@
 /**
- * Pulido de la foto de una prenda: alisado con IA solo cuando hace falta (y hay cupo) y recorte de
+ * Pulido de la foto de una prenda: foto de catálogo con IA cuando corresponde (y hay cupo) y recorte de
  * fondo gratuito siempre. Guarda la versión pulida junto al original y actualiza la prenda.
  */
+import { FieldValue } from 'firebase-admin/firestore';
 import type { Prenda } from '@shared/types.js';
 import { ErrorProveedor } from '../ai/provider.js';
 import { actualizarPrenda, contarHoy, leerPrenda, sumarHoy } from '../data/repos.js';
 import { descargarFoto, subirBytesPrenda } from '../data/storage.js';
-import { alisadoDisponible, alisarFoto } from './alisado.js';
+import { catalogoDisponible, generarFotoCatalogo } from './catalogo.js';
 import { miniatura, recortarPrenda } from './recorte.js';
 
 export interface OpcionesPulir {
-  /** Alisados con IA permitidos al día según el plan (0 = solo recorte gratuito). */
-  alisadosPorDia: number;
-  /** Alisar con IA aunque Guardarropa no haya marcado la foto como arrugada (botón "Mejorar foto"). */
-  forzarAlisado?: boolean;
+  /** Fotos de catálogo con IA permitidas al día según el plan (0 = solo recorte gratuito). */
+  catalogosPorDia: number;
+  /** El plan genera la foto de catálogo sola en cada prenda nueva (Premium). */
+  catalogoAutomatico?: boolean;
+  /** Generarla aunque el plan no lo haga solo o ya se haya intentado (botón "Mejorar foto"). */
+  forzarCatalogo?: boolean;
 }
 
 export interface ResultadoPulir {
   prenda: Prenda;
   /** Qué pasó, para el aviso en pantalla. */
-  resumen: 'alisada-y-recortada' | 'recortada' | 'alisada' | 'sin-cambios' | 'sin-cupo';
+  resumen: 'catalogo' | 'recortada' | 'descartada' | 'sin-cambios' | 'sin-cupo';
 }
 
-/** ¿Quedan alisados con IA para este usuario hoy, con el cupo de su plan? */
-export async function quedaCupoDeRetoque(uid: string, alisadosPorDia: number): Promise<boolean> {
-  if (alisadosPorDia <= 0) return false;
+/**
+ * ¿Toca generar la foto de catálogo con IA? Pura (probada).
+ * Siempre con el botón; si no, solo cuando el plan lo hace automático (o la foto vino arrugada), y nunca si la
+ * prenda ya la tiene, la persona eligió su original o la IA ya falló en ser fiel.
+ */
+export function debeGenerarCatalogo(op: { automatico: boolean; forzar?: boolean; prenda: Pick<Prenda, 'fotoRetoque' | 'fotoArrugada' | 'fotoCatalogoDescartada'> }): boolean {
+  if (op.forzar) return true;
+  const { fotoRetoque, fotoArrugada, fotoCatalogoDescartada } = op.prenda;
+  if (fotoRetoque === 'catalogo' || fotoRetoque === 'original' || fotoCatalogoDescartada) return false;
+  return op.automatico || fotoArrugada === true;
+}
+
+/** ¿Quedan fotos de catálogo con IA para este usuario hoy, con el cupo de su plan? */
+export async function quedaCupoDeRetoque(uid: string, catalogosPorDia: number): Promise<boolean> {
+  if (catalogosPorDia <= 0) return false;
   const usados = await contarHoy(uid, 'retoques');
-  return usados < alisadosPorDia;
+  return usados < catalogosPorDia;
 }
 
 export async function pulirFotoDePrenda(uid: string, prendaId: string, op: OpcionesPulir): Promise<ResultadoPulir> {
@@ -38,34 +53,46 @@ export async function pulirFotoDePrenda(uid: string, prendaId: string, op: Opcio
 
   const original = await descargarFoto(urlOriginal);
   let base = original;
-  let alisada = false;
+  let enCatalogo = false;
   let sinCupo = false;
-
-  const quiereAlisar = op.forzarAlisado || prenda.fotoArrugada === true;
-  if (quiereAlisar && alisadoDisponible()) {
-    if (await quedaCupoDeRetoque(uid, op.alisadosPorDia)) {
+  let falloMotor = false;
+  let descartada = false;
+  const quiereCatalogo = debeGenerarCatalogo({ automatico: !!op.catalogoAutomatico, forzar: op.forzarCatalogo, prenda });
+  if (quiereCatalogo && catalogoDisponible()) {
+    if (await quedaCupoDeRetoque(uid, op.catalogosPorDia)) {
       await sumarHoy(uid, 'retoques');
       try {
-        const r = await alisarFoto(uid, original);
+        const r = await generarFotoCatalogo(uid, original);
         if (r) {
           base = { datos: r.datos, mime: r.mime };
-          alisada = true;
+          enCatalogo = true;
+        } else {
+          descartada = true; // la IA cambiaba la prenda: se queda la foto real
         }
       } catch (e) {
-        // El alisado es opcional: si el motor falla, seguimos con el recorte gratuito.
-        if (e instanceof ErrorProveedor) console.warn('[imagenes] alisado no disponible:', e.message);
-        else throw e;
+        // La foto de catálogo es opcional: si el motor falla, seguimos con el recorte gratuito.
+        if (!(e instanceof ErrorProveedor)) throw e;
+        console.warn('[imagenes] foto de catálogo no disponible:', e.message);
+        falloMotor = true;
       }
     } else {
       sinCupo = true;
     }
   }
 
+  // Estado de la cola: si quería catálogo y no hubo cupo (o el motor falló), queda pendiente para la tarea diaria.
+  const cola: Partial<Prenda> = {
+    fotoCatalogoPendiente: quiereCatalogo && (sinCupo || falloMotor),
+    ...(descartada ? { fotoCatalogoDescartada: true } : {}),
+  };
+  // A pedido y sin cupo, la foto ya tiene su recorte: no hay nada nuevo que hacer hoy.
+  if (sinCupo && op.forzarCatalogo) return { prenda: (await actualizarPrenda(uid, prendaId, cola)) ?? prenda, resumen: 'sin-cupo' };
+
   let pulida = await recortarPrenda(base.datos);
-  const recortada = pulida !== null;
-  if (!pulida && alisada) pulida = base.datos; // sin recorte posible, pero la alisada ya viene sobre fondo liso
+  if (!pulida && enCatalogo) pulida = base.datos; // sin recorte posible, pero la de catálogo ya viene sobre fondo liso
   if (!pulida) {
-    return { prenda, resumen: sinCupo ? 'sin-cupo' : 'sin-cambios' };
+    const actual = await actualizarPrenda(uid, prendaId, cola);
+    return { prenda: actual ?? prenda, resumen: descartada ? 'descartada' : sinCupo ? 'sin-cupo' : 'sin-cambios' };
   }
 
   const { url } = await subirBytesPrenda(uid, prendaId, 'pulida', pulida, 'image/jpeg');
@@ -74,10 +101,11 @@ export async function pulirFotoDePrenda(uid: string, prendaId: string, op: Opcio
     fotoUrl: url,
     fotoMiniUrl: urlMini,
     fotoOriginalUrl: urlOriginal,
-    fotoRetoque: alisada ? 'alisado' : 'recorte',
-    ...(alisada ? { fotoArrugada: false } : {}),
+    fotoRetoque: enCatalogo ? 'catalogo' : 'recorte',
+    ...cola,
+    ...(enCatalogo ? { fotoArrugada: false, fotoCatalogoDescartada: false } : {}),
   });
-  return { prenda: actualizada ?? prenda, resumen: alisada ? (recortada ? 'alisada-y-recortada' : 'alisada') : 'recortada' };
+  return { prenda: actualizada ?? prenda, resumen: enCatalogo ? 'catalogo' : descartada ? 'descartada' : 'recortada' };
 }
 
 /** Vuelve a la foto tal como se subió. La versión pulida se conserva en el bucket por si se vuelve a pulir. */
@@ -85,11 +113,14 @@ export async function restaurarFotoOriginal(uid: string, prendaId: string): Prom
   const prenda = await leerPrenda(uid, prendaId);
   if (!prenda) throw new Error('Esa prenda no existe.');
   if (!prenda.fotoOriginalUrl) return prenda;
+  // FieldValue.delete(): con ignoreUndefinedProperties, un `undefined` no borraría el campo.
   const actualizada = await actualizarPrenda(uid, prendaId, {
     fotoUrl: prenda.fotoOriginalUrl,
     fotoMiniUrl: prenda.fotoOriginalUrl,
-    fotoOriginalUrl: undefined,
-    fotoRetoque: undefined,
+    fotoOriginalUrl: FieldValue.delete() as unknown as string,
+    // 'original': la persona prefiere su foto; no se vuelve a generar sola (solo con el botón).
+    fotoRetoque: 'original',
+    fotoCatalogoPendiente: false,
   });
   return actualizada ?? prenda;
 }

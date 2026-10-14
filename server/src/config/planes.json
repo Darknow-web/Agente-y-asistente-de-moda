@@ -15,6 +15,7 @@
       "rehacerSemana": false,
       "planSemanalAutomatico": false,
       "mejorarFotoPorDia": 0,
+      "fotoCatalogoAutomatica": false,
       "probadorPorMes": 3,
       "comprasPorMes": 3
     },
@@ -23,9 +24,11 @@
       "mensajesPorDia": 60,
       "rehacerSemana": true,
       "planSemanalAutomatico": true,
-      "mejorarFotoPorDia": 10,
+      "mejorarFotoPorDia": 30,
+      "fotoCatalogoAutomatica": true,
       "probadorPorMes": null,
       "comprasPorMes": null
     }
-  }
+  },
+  "_fotosCatalogo": "mejorarFotoPorDia: fotos de catálogo con IA por día (≈ US$0.045 cada una). fotoCatalogoAutomatica: las prendas nuevas salen así sin pedirlo."
 }

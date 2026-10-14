@@ -20,6 +20,8 @@ import { resumenArmario } from './armario.js';
 import { ahora, fechaLocal, lunesDe, sumarDias } from '../util/ids.js';
 import { limitesDe } from '../config/planes.js';
 import { planDeUsuario } from '../auth/plan.js';
+import { pulirFotoDePrenda } from '../imagenes/pulir.js';
+import type { Prenda } from '@shared/types.js';
 
 export const rutasJobs = ExpressRouter();
 rutasJobs.use('/jobs', requiereSecretoJobs);
@@ -114,6 +116,7 @@ rutasJobs.post(
  *  - Estreno: una prenda nueva lleva 30 días sin usarse → aviso con una forma de ponérsela.
  *  - Ropa dormida: una vez por semana (lunes), resumen de lo que lleva 60+ días sin uso y su valor.
  *  - Deseos en enfriamiento: a los 7 días, "¿sigues queriéndolo?" con qué lo combinaría (Estilismo).
+ *  - Fotos de catálogo pendientes (Premium): continúa las que no entraron en el cupo de ayer.
  */
 rutasJobs.post(
   '/jobs/diario',
@@ -197,8 +200,28 @@ rutasJobs.post(
           hechos.push(`deseo ${d.nombre}`);
         }
 
+        const fotos = await continuarFotosCatalogo(uid, email, ctx.prendas);
+        if (fotos) hechos.push(`${fotos} fotos de catálogo`);
+
         return hechos.length ? hechos.join(' · ') : null;
       }),
     );
   }),
 );
+
+/** Fotos por usuario y corrida: la tarea pasa por todos los usuarios y no debe alargarse. */
+const FOTOS_POR_CORRIDA = 10;
+
+async function continuarFotosCatalogo(uid: string, email: string, prendas: Prenda[]): Promise<number> {
+  const pendientes = prendas.filter((p) => p.fotoCatalogoPendiente);
+  if (!pendientes.length) return 0;
+  const limites = limitesDe(await planDeUsuario(uid, email));
+  if (!limites.fotoCatalogoAutomatica) return 0;
+  let hechas = 0;
+  for (const p of pendientes.slice(0, FOTOS_POR_CORRIDA)) {
+    const r = await pulirFotoDePrenda(uid, p.id, { forzarCatalogo: true, catalogosPorDia: limites.mejorarFotoPorDia });
+    if (r.resumen === 'sin-cupo') break;
+    if (r.resumen === 'catalogo') hechas++;
+  }
+  return hechas;
+}

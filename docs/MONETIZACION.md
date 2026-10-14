@@ -11,7 +11,7 @@ valor de verdad. **Premium** quita los límites. Se cobra con **Mercado Pago** (
 | Prendas en el armario | 30 | sin límite |
 | Look del día, recorte de fondo, avisos, diario | sí | sí |
 | Plan de la semana | una vez por semana, sin rehacer | automático cada domingo y rehacer cuando quieras |
-| Mejorar fotos con IA (alisar arrugas) | no | 10 al día |
+| Fotos de catálogo con IA | no (recorte de fondo gratis) | automáticas, hasta 30 al día |
 | Probador antes de comprar | 3 al mes | sin límite |
 | Compras con precios reales | 3 consultas al mes | sin límite |
 

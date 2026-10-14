@@ -140,18 +140,20 @@ export function DetallePrenda() {
             {prenda.fotoUrl ? (
               <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px] text-[var(--texto-2)]">
                 <span>
-                  {prenda.fotoRetoque === 'alisado'
-                    ? 'Fondo recortado y arrugas alisadas.'
-                    : prenda.fotoRetoque === 'recorte'
-                      ? 'Fondo recortado y luz nivelada.'
-                      : 'Foto tal como se subió.'}
+                  {prenda.fotoRetoque === 'catalogo'
+                    ? 'Foto de catálogo generada con IA.'
+                    : prenda.fotoRetoque === 'alisado'
+                      ? 'Fondo recortado y arrugas alisadas.'
+                      : prenda.fotoRetoque === 'recorte'
+                        ? `Fondo recortado y luz nivelada.${prenda.fotoCatalogoPendiente ? ' La foto de catálogo llega pronto.' : ''}`
+                        : 'Foto tal como se subió.'}
                 </span>
                 <span className="flex gap-4">
                   <button
                     type="button"
                     className="min-h-11 border-b border-[var(--texto)] text-[var(--texto)] disabled:opacity-50"
                     disabled={ocupado !== null}
-                    onClick={() => void accion('mejorar', () => api.mejorarFoto(prenda.id), 'Foto mejorada: fondo recortado y arrugas alisadas.')}
+                    onClick={() => void accion('mejorar', () => api.mejorarFoto(prenda.id), 'Lista tu foto de catálogo.')}
                   >
                     {ocupado === 'mejorar' ? 'Mejorando, medio minuto' : 'Mejorar foto'}
                   </button>

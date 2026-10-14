@@ -4,7 +4,7 @@
  */
 import { Router as ExpressRouter } from 'express';
 import type { Deseo, NombrePlan, Prenda } from '@shared/types.js';
-import type { ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespResumenArmario } from '@shared/api.js';
+import type { ReqAjuste, ReqCatalogar, ReqCrearPrenda, ReqRegistrarUso, RespCatalogar, RespFotosCatalogo, RespResumenArmario } from '@shared/api.js';
 import { requiereInvitado, requiereSesion } from '../auth/middleware.js';
 import {
   actualizarPrenda,
@@ -20,6 +20,7 @@ import {
   marcarLavada,
   registrarUso,
   ultimoUsoPorPrenda,
+  contarHoy,
   contarPrendas,
 } from '../data/repos.js';
 import { borrarFotoPrenda, subirFotoPrenda } from '../data/storage.js';
@@ -158,24 +159,57 @@ rutasArmario.post(
   }),
 );
 
-// Pulido automático tras subir: recorte gratuito; alisado con IA solo si vino arrugada y queda cupo.
+// Pulido automático tras subir: recorte gratuito; en Premium, además, foto de catálogo con IA (si queda cupo hoy;
+// si no, queda pendiente y la tarea diaria la continúa).
 rutasArmario.post(
   '/prendas/:id/foto/pulir',
   asincrono(async (req, res) => {
-    const r = await pulirFotoDePrenda(req.usuario!.uid, String(req.params.id), { alisadosPorDia: limitesDe(req.usuario!.plan).mejorarFotoPorDia });
+    const limites = limitesDe(req.usuario!.plan);
+    const r = await pulirFotoDePrenda(req.usuario!.uid, String(req.params.id), {
+      catalogosPorDia: limites.mejorarFotoPorDia,
+      catalogoAutomatico: limites.fotoCatalogoAutomatica,
+    });
     res.json(r.prenda);
   }),
 );
 
-// Botón "Mejorar foto": alisado con IA (descuenta del cupo diario) + recorte.
+// "Pasar mi armario a foto de catálogo": marca como pendientes las prendas con foto que aún no la tienen.
+// El cliente las procesa una a una con /foto/mejorar; lo que no alcance hoy lo sigue la tarea diaria.
+rutasArmario.post(
+  '/armario/fotos-catalogo',
+  asincrono(async (req, res) => {
+    const { uid, plan } = req.usuario!;
+    const limites = limitesDe(plan);
+    if (limites.mejorarFotoPorDia <= 0) {
+      throw requierePremium('Las fotos de catálogo con IA son parte de Premium. El recorte de fondo sigue siendo gratis.');
+    }
+    const pendientes = (await listarPrendas(uid)).filter(
+      (p) => (p.fotoOriginalUrl || p.fotoUrl) && p.fotoRetoque !== 'catalogo' && p.fotoRetoque !== 'original',
+    );
+    await Promise.all(pendientes.map((p) => actualizarPrenda(uid, p.id, { fotoCatalogoPendiente: true })));
+    const usados = await contarHoy(uid, 'retoques');
+    const respuesta: RespFotosCatalogo = {
+      pendientes: pendientes.map((p) => p.id),
+      cupoHoy: Math.max(0, limites.mejorarFotoPorDia - usados),
+    };
+    res.json(respuesta);
+  }),
+);
+
+// Botón "Mejorar foto": foto de catálogo con IA (descuenta del cupo diario) + recorte.
 rutasArmario.post(
   '/prendas/:id/foto/mejorar',
   asincrono(async (req, res) => {
     const { uid, plan } = req.usuario!;
     const cupo = limitesDe(plan).mejorarFotoPorDia;
-    if (cupo <= 0) throw requierePremium('Mejorar fotos con IA (alisar arrugas) es parte de Premium. El recorte de fondo sigue siendo gratis.');
-    if (!(await quedaCupoDeRetoque(uid, cupo))) throw new ErrorHttp(429, 'Llegaste al límite de fotos mejoradas con IA por hoy. Mañana puedes seguir.');
-    const r = await pulirFotoDePrenda(uid, String(req.params.id), { forzarAlisado: true, alisadosPorDia: cupo });
+    if (cupo <= 0) throw requierePremium('Las fotos de catálogo con IA son parte de Premium. El recorte de fondo sigue siendo gratis.');
+    if (!(await quedaCupoDeRetoque(uid, cupo))) {
+      throw new ErrorHttp(429, `Llegaste a las ${cupo} fotos de catálogo de hoy. Las que faltan siguen solas mañana.`, undefined, 'cupo-fotos');
+    }
+    const r = await pulirFotoDePrenda(uid, String(req.params.id), { forzarCatalogo: true, catalogosPorDia: cupo });
+    if (r.resumen === 'descartada') {
+      throw new ErrorHttp(422, 'La IA no logró una foto fiel a tu prenda (cambiaba detalles), así que dejamos la tuya. Prueba con una foto más clara, con la prenda sola.');
+    }
     if (r.resumen === 'sin-cambios') throw new ErrorHttp(502, 'No pudimos mejorar esta foto. Prueba con otra más iluminada, con la prenda sola sobre un fondo liso.');
     res.json(r.prenda);
   }),

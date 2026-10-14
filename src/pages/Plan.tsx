@@ -24,7 +24,7 @@ function filas(l: LimitesPlan): [string, string][] {
     ['Prendas en tu armario', tope(l.prendasMax, 'prendas')],
     ['Look del día, recorte de fondo y avisos', 'Incluido'],
     ['Plan de la semana', l.planSemanalAutomatico ? 'Automático cada domingo y rehacer cuando quieras' : 'Lo pides una vez por semana'],
-    ['Mejorar fotos con IA (alisar arrugas)', tope(l.mejorarFotoPorDia, 'al día')],
+    ['Fotos de catálogo con IA', l.fotoCatalogoAutomatica ? `Automáticas (${l.mejorarFotoPorDia} al día)` : tope(l.mejorarFotoPorDia, 'al día')],
     ['Probador antes de comprar', tope(l.probadorPorMes, 'al mes')],
     ['Compras con precios reales', tope(l.comprasPorMes, 'consultas al mes')],
   ];

@@ -7,7 +7,7 @@ import { createHmac } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Suscripcion } from '@shared/types.js';
+import type { Prenda, Suscripcion } from '@shared/types.js';
 
 const estado = vi.hoisted(() => ({
   suscripcion: null as Suscripcion | null,
@@ -17,6 +17,8 @@ const estado = vi.hoisted(() => ({
   mes: { probador: 0, compras: 0 } as Record<string, number>,
   planExistente: false,
   guardadas: [] as Suscripcion[],
+  armario: [] as Partial<Prenda>[],
+  marcadas: [] as string[],
 }));
 
 vi.mock('../auth/admin.js', () => ({
@@ -38,6 +40,10 @@ vi.mock('../data/repos.js', () => ({
   contarHoy: vi.fn(async () => estado.retoquesHoy),
   contarMes: vi.fn(async (_uid: string, campo: string) => estado.mes[campo] ?? 0),
   sumarMes: vi.fn(async () => undefined),
+  listarPrendas: vi.fn(async () => estado.armario),
+  actualizarPrenda: vi.fn(async (_uid: string, id: string) => {
+    estado.marcadas.push(id);
+  }),
   leerPlan: vi.fn(async () => (estado.planExistente ? { semanaInicio: '2026-10-12', dias: [] } : null)),
 }));
 
@@ -73,7 +79,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
-  Object.assign(estado, { suscripcion: null, prendas: 0, mensajesHoy: 0, retoquesHoy: 0, mes: { probador: 0, compras: 0 }, planExistente: false, guardadas: [] });
+  Object.assign(estado, { suscripcion: null, prendas: 0, mensajesHoy: 0, retoquesHoy: 0, mes: { probador: 0, compras: 0 }, planExistente: false, guardadas: [], armario: [], marcadas: [] });
 });
 
 const premium: Suscripcion = { plan: 'premium', estado: 'activa', proveedor: 'mercadopago', mpPreapprovalId: 'pre-1', actualizadaEn: '' };
@@ -105,8 +111,27 @@ describe('límites del plan Gratis', () => {
   it('Mejorar foto es solo Premium; en Premium respeta el cupo diario', async () => {
     expect((await llamar('/api/prendas/p1/foto/mejorar', {})).status).toBe(402);
     estado.suscripcion = premium;
-    estado.retoquesHoy = 10;
-    expect((await llamar('/api/prendas/p1/foto/mejorar', {}, 'u2')).status).toBe(429);
+    estado.retoquesHoy = 30;
+    const r = await llamar('/api/prendas/p1/foto/mejorar', {}, 'u2');
+    expect(r.status).toBe(429);
+    expect(r.json.codigo).toBe('cupo-fotos');
+  });
+
+  it('Pasar el armario a foto de catálogo: Gratis recibe 402; Premium marca solo las que faltan', async () => {
+    estado.armario = [
+      { id: 'a', fotoUrl: 'x', fotoRetoque: 'recorte' },
+      { id: 'b', fotoUrl: 'x', fotoRetoque: 'catalogo' },
+      { id: 'c', fotoUrl: 'x', fotoRetoque: 'original' },
+      { id: 'd' },
+    ];
+    expect((await llamar('/api/armario/fotos-catalogo', {})).status).toBe(402);
+    expect(estado.marcadas).toEqual([]);
+    estado.suscripcion = premium;
+    estado.retoquesHoy = 4;
+    const r = await llamar('/api/armario/fotos-catalogo', {}, 'u3');
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({ pendientes: ['a'], cupoHoy: 26 });
+    expect(estado.marcadas).toEqual(['a']);
   });
 
   it('Probador: 3 al mes en Gratis', async () => {
