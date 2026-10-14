@@ -56,6 +56,12 @@ Las reglas de seguridad (`firestore.rules`, `storage.rules`) y los índices (`fi
 están en el repositorio. Si la integración no los despliega, hazlo una vez con la CLI de Firebase:
 `firebase deploy --only firestore:rules,firestore:indexes,storage`.
 
+**Publica las reglas cada vez que cambien, aunque no publiques la app.** Las reglas no viajan con Cloud Run ni
+con Cloudflare: viven en Firebase. Sin CLI: Firebase Console › Firestore Database › Reglas › pega el contenido
+de `firestore.rules` › **Publicar** (y lo mismo con `storage.rules` en Storage › Reglas). Las reglas actuales
+dejan al cliente solo **leer** sus datos; si siguen las antiguas, un usuario podría resetear su contador de
+mensajes o darse un plan de pago. `npm run reglas:probar` lo comprueba contra el proyecto real.
+
 ### Paso 4 · Publicar
 
 1. Pulsa **Publish**. Elige el mismo proyecto de Google Cloud.

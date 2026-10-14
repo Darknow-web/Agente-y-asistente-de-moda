@@ -15,6 +15,9 @@ que se despliega en Cloud Run desde Google AI Studio.
 - No borres `package-lock.json`: el `Dockerfile` lo usa para instalar exactamente las mismas versiones.
 - Las reglas de seguridad ya existen y son la fuente de verdad: **`firestore.rules`** y **`storage.rules`**
   en la raíz. No las sobrescribas. Si necesitas cambiarlas, edítalas ahí y explica el cambio.
+  El cliente **solo lee** sus datos (`users/{uid}/**`); toda escritura pasa por el servidor con Admin SDK, que
+  valida sesión, plan y límites. No abras escritura al cliente: podría resetear sus contadores o darse un plan de
+  pago. `npm run reglas:probar` comprueba las reglas publicadas contra el proyecto real.
 - El servidor usa `firebase-admin` con las credenciales por defecto de Cloud Run (no requiere archivo de llave).
 - Estructura de datos: `users/{uid}/perfil`, `users/{uid}/prendas`, `users/{uid}/usos`, `users/{uid}/planes`,
   `users/{uid}/deseos`, `users/{uid}/conversaciones`, `users/{uid}/avisos` (incluye el diario del
