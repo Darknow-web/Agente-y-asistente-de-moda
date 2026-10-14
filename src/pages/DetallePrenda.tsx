@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { NivelAjuste, Prenda } from '@shared/types';
-import { api } from '@/lib/api';
+import { api, esRequierePremium } from '@/lib/api';
 import { useCarga } from '@/lib/useCarga';
 import { fechaMedia } from '@/lib/fechas';
 import { Columna } from '@/components/Disposicion';
@@ -70,7 +70,7 @@ export function DetallePrenda() {
       actualizar(await fn());
       setAviso({ tipo: 'ok', texto: mensaje });
     } catch (e) {
-      setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo completar.' });
+      if (!esRequierePremium(e)) setAviso({ tipo: 'error', texto: e instanceof Error ? e.message : 'No se pudo completar.' });
     } finally {
       setOcupado(null);
     }

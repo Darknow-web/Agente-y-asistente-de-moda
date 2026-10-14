@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { Adjunto, Conversacion, Mensaje, NombreAgente } from '@shared/types';
-import { api, chatStream } from '@/lib/api';
+import { api, chatStream, esRequierePremium } from '@/lib/api';
 import { prepararArchivo, urlDeAdjunto } from '@/lib/imagenes';
 import { useSesion } from '@/lib/sesion';
 import { relativo } from '@/lib/fechas';
@@ -211,6 +211,7 @@ export function Sastra() {
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Sastra no pudo responder.');
+        if (esRequierePremium(e)) void recargarYo(); // actualiza el contador y deshabilita el envío
       } finally {
         setEnviando(false);
         setTrabajando([]);
@@ -346,7 +347,21 @@ export function Sastra() {
           ) : null}
           {sinMensajesHoy ? (
             <p className="m-0 mb-3 text-[13px] text-[var(--texto-2)]">
-              Has usado tus mensajes de hoy. Mañana Sastra vuelve a estar disponible.
+              {yo?.plan === 'gratis' ? (
+                <>
+                  Usaste tus mensajes gratis de hoy. Mañana tienes más, o{' '}
+                  <Link to="/plan" className="border-b border-[var(--texto)] text-[var(--texto)]">
+                    pasa a Premium
+                  </Link>{' '}
+                  para seguir conversando.
+                </>
+              ) : (
+                'Has usado tus mensajes de hoy. Mañana Sastra vuelve a estar disponible.'
+              )}
+            </p>
+          ) : yo?.plan === 'gratis' && yo.mensajesRestantesHoy <= 5 ? (
+            <p className="m-0 mb-3 text-[12px] text-[var(--texto-2)]">
+              Te {yo.mensajesRestantesHoy === 1 ? 'queda 1 mensaje' : `quedan ${yo.mensajesRestantesHoy} mensajes`} gratis hoy.
             </p>
           ) : null}
           <div className="flex items-center gap-[10px]">

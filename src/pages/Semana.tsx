@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PlanDia, Prenda } from '@shared/types';
-import { api } from '@/lib/api';
+import { api, esRequierePremium } from '@/lib/api';
 import { useCarga } from '@/lib/useCarga';
 import { aFechaISO, diaCorto, hoyISO, lunesDeSemana, rangoSemana, sumarDias } from '@/lib/fechas';
 import { Cabecera } from '@/components/Cabecera';
@@ -41,7 +41,7 @@ export function Semana() {
       const nuevo = await api.generarSemana({ inicio });
       setDatos(nuevo);
     } catch (e) {
-      setErrorGenerar(e instanceof Error ? e.message : 'No se pudo planificar la semana.');
+      if (!esRequierePremium(e)) setErrorGenerar(e instanceof Error ? e.message : 'No se pudo planificar la semana.');
     } finally {
       setGenerando(false);
     }

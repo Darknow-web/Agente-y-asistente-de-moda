@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Adjunto } from '@shared/types';
 import type { RespCatalogar } from '@shared/api';
-import { api } from '@/lib/api';
+import { api, esRequierePremium } from '@/lib/api';
 import { comprimirImagen, urlDeAdjunto } from '@/lib/imagenes';
 import { Cabecera } from '@/components/Cabecera';
 import { Columna } from '@/components/Disposicion';
@@ -80,7 +80,7 @@ export function NuevaPrenda() {
       const r = await api.catalogar({ foto: adjunto, pista: pista.trim() || undefined, rapido: true });
       actualizarItem(item.id, { estado: 'listo', propuesta: r.propuesta });
     } catch (e) {
-      actualizarItem(item.id, { estado: 'error', error: e instanceof Error ? e.message : 'No se pudo catalogar.' });
+      actualizarItem(item.id, { estado: 'error', error: esRequierePremium(e) ? 'Armario lleno en el plan Gratis' : e instanceof Error ? e.message : 'No se pudo catalogar.' });
     }
   };
 
@@ -113,7 +113,7 @@ export function NuevaPrenda() {
         actualizarItem(item.id, { estado: 'guardada' });
         if (creada.fotoUrl) void api.pulirFoto(creada.id).catch(() => undefined); // recorte en segundo plano
       } catch (e) {
-        actualizarItem(item.id, { estado: 'error', error: e instanceof Error ? e.message : 'No se pudo guardar.' });
+        actualizarItem(item.id, { estado: 'error', error: esRequierePremium(e) ? 'Armario lleno en el plan Gratis' : e instanceof Error ? e.message : 'No se pudo guardar.' });
       }
     });
     setGuardandoLote(false);
@@ -139,7 +139,7 @@ export function NuevaPrenda() {
       setRespuestas((r.preguntas ?? []).map(() => ''));
       setFase('revisar');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo catalogar la foto.');
+      if (!esRequierePremium(e)) setError(e instanceof Error ? e.message : 'No se pudo catalogar la foto.');
       // Si ya había una propuesta (cambio de foto), se conserva; si no, se vuelve a elegir foto.
       setFase(campos ? 'revisar' : 'foto');
     }

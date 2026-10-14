@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { Lockup } from './Marca';
 import { NavInferior, SECCIONES } from './NavInferior';
 import { useSesion } from '@/lib/sesion';
+import { AvisoPremium } from './AvisoPremium';
 
 export function Disposicion({ children, sinNav = false }: { children: ReactNode; sinNav?: boolean }) {
   const { yo } = useSesion();
@@ -44,9 +45,12 @@ export function Disposicion({ children, sinNav = false }: { children: ReactNode;
               <Link to="/avisos" className="inline-flex min-h-11 items-center text-[var(--texto-2)] hover:text-[var(--texto)]">
                 Avisos
               </Link>
+              <Link to="/plan" className="inline-flex min-h-11 items-center text-[var(--texto-2)] hover:text-[var(--texto)]">
+                {yo?.plan === 'premium' ? 'Plan Premium' : 'Plan Gratis'}
+              </Link>
               {yo?.admin ? (
                 <Link to="/invitados" className="inline-flex min-h-11 items-center text-[var(--texto-2)] hover:text-[var(--texto)]">
-                  Invitados
+                  Cortesías
                 </Link>
               ) : null}
               {yo?.email ? <span className="pequeno truncate pt-2">{yo.email}</span> : null}
@@ -56,6 +60,7 @@ export function Disposicion({ children, sinNav = false }: { children: ReactNode;
         <main className={sinNav ? 'min-h-dvh' : 'min-h-dvh pb-[96px] lg:pb-0'}>{children}</main>
       </div>
       {!sinNav ? <NavInferior /> : null}
+      <AvisoPremium sinNav={sinNav} />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import type {
   PeticionChat,
   PlanSemanal,
   Prenda,
+  Reclamacion,
 } from '@shared/types';
 import type {
   ErrorApi,
@@ -37,18 +38,32 @@ import type {
   RespSalud,
   RespSemana,
   RespYo,
+  ReqCheckout,
+  ReqReclamacion,
+  RespCheckout,
+  RespSuscripcion,
 } from '@shared/api';
 import { auth } from './firebase';
 
 export class ErrorHttp extends Error {
   estado: number;
   detalle?: string;
-  constructor(mensaje: string, estado: number, detalle?: string) {
+  /** 'requiere-premium': la acción no está en el plan Gratis o se agotó su cupo. */
+  codigo?: string;
+  constructor(mensaje: string, estado: number, detalle?: string, codigo?: string) {
     super(mensaje);
     this.name = 'ErrorHttp';
     this.estado = estado;
     this.detalle = detalle;
+    this.codigo = codigo;
   }
+}
+
+/** Evento global que muestra la invitación a Premium (componente AvisoPremium en la disposición). */
+export const EVENTO_REQUIERE_PREMIUM = 'sastra:requiere-premium';
+
+export function esRequierePremium(e: unknown): boolean {
+  return e instanceof ErrorHttp && e.codigo === 'requiere-premium';
 }
 
 async function cabeceras(conJson: boolean): Promise<Record<string, string>> {
@@ -69,15 +84,20 @@ async function cabeceras(conJson: boolean): Promise<Record<string, string>> {
 async function leerError(res: Response): Promise<never> {
   let mensaje = `Error ${res.status}`;
   let detalle: string | undefined;
+  let codigo: string | undefined;
   try {
     const cuerpo = (await res.json()) as Partial<ErrorApi>;
     if (cuerpo?.error) mensaje = cuerpo.error;
     detalle = cuerpo?.detalle;
+    codigo = cuerpo?.codigo;
   } catch {
     if (res.status === 404) mensaje = 'El servidor no respondió en esa ruta.';
     if (res.status >= 500) mensaje = 'El servidor tuvo un problema. Inténtalo de nuevo.';
   }
-  throw new ErrorHttp(mensaje, res.status, detalle);
+  if (codigo === 'requiere-premium' && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent<string>(EVENTO_REQUIERE_PREMIUM, { detail: mensaje }));
+  }
+  throw new ErrorHttp(mensaje, res.status, detalle, codigo);
 }
 
 async function peticion<T>(metodo: string, ruta: string, cuerpo?: unknown, extra: { keepalive?: boolean } = {}): Promise<T> {
@@ -153,6 +173,13 @@ export const api = {
   conversaciones: () =>
     get<Pick<Conversacion, 'id' | 'titulo' | 'actualizadaEn'>[]>('/api/conversaciones'),
   conversacion: (id: string) => get<Conversacion>(`/api/conversaciones/${encodeURIComponent(id)}`),
+
+  suscripcion: (preapprovalId?: string) =>
+    get<RespSuscripcion>(`/api/suscripcion${preapprovalId ? `?preapproval_id=${encodeURIComponent(preapprovalId)}` : ''}`),
+  checkout: (req: ReqCheckout) => post<RespCheckout>('/api/suscripcion/checkout', req),
+  cancelarSuscripcion: () => post<RespSuscripcion>('/api/suscripcion/cancelar'),
+  reclamacion: (req: ReqReclamacion) => post<{ id: string }>('/api/reclamaciones', req),
+  reclamaciones: () => get<Reclamacion[]>('/api/reclamaciones'),
 
   invitados: () => get<Invitado[]>('/api/invitados'),
   invitar: (email: string) => post<Invitado[]>('/api/invitados', { email }),

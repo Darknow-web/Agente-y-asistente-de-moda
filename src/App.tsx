@@ -19,6 +19,10 @@ import { Avisos } from './pages/Avisos';
 import { Diagnostico } from './pages/Diagnostico';
 import { Invitados } from './pages/Invitados';
 import { Bienvenida } from './pages/Bienvenida';
+import { Plan } from './pages/Plan';
+import { Terminos } from './pages/legal/Terminos';
+import { Privacidad } from './pages/legal/Privacidad';
+import { LibroReclamaciones } from './pages/legal/LibroReclamaciones';
 
 /** Sin bienvenida completada y sin datos básicos → se ofrece la bienvenida una vez. */
 function necesitaBienvenida(perfil: { bienvenidaCompletada?: boolean; ciudad?: string; estilo?: string[] }): boolean {
@@ -181,6 +185,17 @@ export default function App() {
           </Privado>
         }
       />
+      <Route
+        path="/plan"
+        element={
+          <Privado>
+            <Plan />
+          </Privado>
+        }
+      />
+      <Route path="/terminos" element={<Terminos />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/libro-de-reclamaciones" element={<LibroReclamaciones />} />
       <Route
         path="/invitados"
         element={

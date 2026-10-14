@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Adjunto, NombreAgente } from '@shared/types';
 import type { RespIndiceCompra } from '@shared/api';
-import { api, chatStream } from '@/lib/api';
+import { api, chatStream, esRequierePremium } from '@/lib/api';
 import { useCarga } from '@/lib/useCarga';
 import { prepararArchivo, urlDeAdjunto } from '@/lib/imagenes';
 import { fraseTrabajando, parrafos } from '@/lib/chat';
@@ -101,7 +101,7 @@ export function Probador() {
         ctrl.signal,
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sastra no pudo responder.');
+      if (!esRequierePremium(e)) setError(e instanceof Error ? e.message : 'Sastra no pudo responder.');
     } finally {
       setEnCurso(false);
       setTrabajando([]);
@@ -132,7 +132,7 @@ export function Probador() {
       }
       await consultar(adjunto, texto);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo preparar el archivo.');
+      if (!esRequierePremium(e)) setError(e instanceof Error ? e.message : 'No se pudo preparar el archivo.');
       setFase(medio ? 'veredicto' : 'inicio');
     } finally {
       for (const r of [camaraRef, videoRef, galeriaRef, etiquetaRef]) if (r.current) r.current.value = '';

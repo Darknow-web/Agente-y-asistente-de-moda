@@ -1,4 +1,4 @@
-/** Invitados (solo administración): quién puede entrar a SASTRA. */
+/** Cortesías (solo administración): correos con Premium sin pagar. Si el acceso está cerrado, también son quienes pueden entrar. */
 import { useState } from 'react';
 import type { Invitado } from '@shared/api';
 import { api } from '@/lib/api';
@@ -49,9 +49,9 @@ export function Invitados() {
   return (
     <div className="aparece">
       <Columna>
-        <Cabecera titulo="Invitados" meta={datos ? `${datos.length} ${datos.length === 1 ? 'persona' : 'personas'}` : undefined}>
+        <Cabecera titulo="Cortesías" meta={datos ? `${datos.length} ${datos.length === 1 ? 'persona' : 'personas'}` : undefined}>
           <p className="m-0 mt-[10px] max-w-[40rem] text-[14px] leading-[1.5] text-[var(--texto-2)]">
-            Solo los correos de esta lista pueden usar SASTRA. Quien entre con otro correo verá un aviso para pedir acceso.
+            Los correos de esta lista tienen Premium sin pagar (equipo, familia, testers). Cualquier otra persona puede entrar en plan Gratis.
           </p>
         </Cabecera>
 

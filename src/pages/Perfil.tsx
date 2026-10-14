@@ -389,7 +389,12 @@ export function Perfil() {
               texto="Diagnóstico de la app"
               meta={salud ? (salud.ok ? 'Todo en orden' : 'Revisar') : ''}
             />
-            {yo?.admin ? <EnlaceCaja a="/invitados" texto="Invitados" meta="Administrar" /> : null}
+            <EnlaceCaja
+              a="/plan"
+              texto="Tu plan"
+              meta={yo?.origenPlan === 'cortesia' || yo?.origenPlan === 'admin' ? 'Premium de cortesía' : yo?.plan === 'premium' ? 'Premium' : 'Gratis · ver Premium'}
+            />
+            {yo?.admin ? <EnlaceCaja a="/invitados" texto="Cortesías" meta="Premium sin pagar" /> : null}
           </div>
         </div>
 
@@ -446,6 +451,17 @@ export function Perfil() {
           <button type="button" className="boton-2" onClick={() => void salir()}>
             Salir
           </button>
+          <nav aria-label="Información legal" className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-[var(--texto-2)]">
+            <Link to="/terminos" className="border-b border-current">
+              Términos
+            </Link>
+            <Link to="/privacidad" className="border-b border-current">
+              Privacidad
+            </Link>
+            <Link to="/libro-de-reclamaciones" className="border-b border-current">
+              Libro de Reclamaciones
+            </Link>
+          </nav>
         </div>
       </Columna>
     </div>
