@@ -85,10 +85,3 @@ export function bloquesDe(texto: string): Bloque[] {
   cerrarLista();
   return bloques;
 }
-
-/** Texto plano sin marcas (para títulos, resúmenes o notificaciones). */
-export function sinMarcas(texto: string): string {
-  return bloquesDe(texto)
-    .map((b) => (b.tipo === 'lista' ? b.items.map((it) => it.map((t) => t.texto).join('')).join('\n') : b.tramos.map((t) => t.texto).join('')))
-    .join('\n');
-}

@@ -42,10 +42,6 @@ export function leerTexto(agente: NombreAgente | 'config', archivo: string): str
   return texto;
 }
 
-export function limpiarCacheTextos(): void {
-  cacheTextos.clear();
-}
-
 export function sistemaDe(agente: NombreAgente, ctx: ContextoCliente, extra = ''): string {
   const empresa = leerTexto('config', 'empresa.md');
   const prompt = leerTexto(agente, 'prompt.md');

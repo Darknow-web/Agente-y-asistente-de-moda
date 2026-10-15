@@ -16,6 +16,7 @@ src/lib/firebase-config.json
 
 # salida local del generador de marca (se regenera con tools/brand/*.py)
 tools/brand/out/
+__pycache__/
 
 # emuladores y logs
 firebase-debug.log

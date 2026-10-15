@@ -203,12 +203,6 @@ export async function eliminarSuscripcionPush(uid: string, endpoint: string): Pr
   await lote.commit();
 }
 
-export async function usosRecientes(uid: string, dias = 14): Promise<Uso[]> {
-  const desde = new Date(Date.now() - dias * 86400000).toISOString();
-  const snap = await usuario(uid).collection('usos').where('fecha', '>=', desde).get();
-  return snap.docs.map((d) => d.data() as Uso);
-}
-
 // ---------------------------------------------------------------- planes
 export async function leerPlan(uid: string, semanaInicio: string): Promise<PlanSemanal | null> {
   const doc = await usuario(uid).collection('planes').doc(semanaInicio).get();

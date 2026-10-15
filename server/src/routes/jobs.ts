@@ -17,6 +17,7 @@ import { construirContexto } from '../memory/construir.js';
 import { generarSemana, lookDelDia } from '../agents/planificacion/index.js';
 import { formasDeUso } from '../agents/estilismo/index.js';
 import { resumenArmario } from './armario.js';
+import { DIAS_ESTRENO_PENDIENTE } from '../data/resumen-armario.js';
 import { ahora, fechaLocal, lunesDe, sumarDias } from '../util/ids.js';
 import { avisoDeCobro, limitesDe } from '../config/planes.js';
 import { planDeUsuario } from '../auth/plan.js';
@@ -130,7 +131,7 @@ rutasJobs.post(
         const moneda = resumen.moneda === 'PEN' ? 'S/' : resumen.moneda;
 
         // Estreno pendiente (30 días sin uso desde que entró)
-        const pendiente = resumen.sinEstrenar.find((p) => p.dias >= 30);
+        const pendiente = resumen.sinEstrenar.find((p) => p.dias >= DIAS_ESTRENO_PENDIENTE);
         if (pendiente && !(await existeAvisoHoy(uid, 'estreno'))) {
           const prenda = ctx.prendas.find((p) => p.id === pendiente.id);
           if (prenda) {

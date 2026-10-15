@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bloquesDe, sinMarcas, tramosDe } from './markdown';
+import { bloquesDe, tramosDe } from './markdown';
 
 describe('markdown mínimo', () => {
   it('reconoce negritas y cursivas dentro de una línea', () => {
@@ -29,9 +29,5 @@ describe('markdown mínimo', () => {
     const bloques = bloquesDe('Primera línea\nsegunda línea\n\nOtro párrafo');
     expect(bloques).toHaveLength(2);
     expect(bloques[0].tipo === 'parrafo' && bloques[0].tramos[0].texto).toBe('Primera línea\nsegunda línea');
-  });
-
-  it('quita las marcas para texto plano', () => {
-    expect(sinMarcas('### Hoy\n**Camisa** y *jean*\n- uno\n- dos')).toBe('Hoy\nCamisa y jean\nuno\ndos');
   });
 });

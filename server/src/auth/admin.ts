@@ -103,12 +103,6 @@ export function baseDeDatosId(): string {
   return env('FIRESTORE_DATABASE_ID') || env('VITE_FIREBASE_DATABASE_ID') || configApplet().firestoreDatabaseId || '';
 }
 
-export function firebaseListo(): { listo: boolean; problema?: string } {
-  if (app) return { listo: true };
-  if (problema) return { listo: false, problema };
-  return { listo: false, problema: 'Firebase no se ha inicializado todavía.' };
-}
-
 export function iniciarFirebase(): App | null {
   if (app) return app;
   if (getApps().length) {

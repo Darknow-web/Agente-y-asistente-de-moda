@@ -62,6 +62,7 @@ npm run build && npm start   # producción (sirve dist/ y /api en el mismo puert
 
 - Idioma de interfaz, prompts y documentación: español.
 - El diseño sigue `docs/DISEÑO.md` (paleta, tipografías, retícula). No introducir otros colores ni fuentes.
-- Los agentes de IA viven en `server/src/agents/<nombre>/` (prompt.md + conocimiento.md + tools.ts + index.ts).
+- Los agentes de IA viven en `server/src/agents/<nombre>/` (prompt.md + conocimiento.md; index.ts cuando el agente tiene
+  funciones propias; los departamentos se registran en `server/src/agents/departamentos.ts` y las herramientas viven en `server/src/tools/`).
   Qué motor usa cada uno se define en `server/src/config/modelos.json`; no fijar modelos en el código.
 - El propósito de la empresa está en `server/src/config/empresa.md` y se inyecta a todos los agentes.

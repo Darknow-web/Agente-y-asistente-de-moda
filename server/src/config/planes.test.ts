@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Suscripcion } from '@shared/types.js';
-import { alcanzoLimite, avisoDeCobro, leerPlanes, limitesDe, planEfectivo, precioDe, restantes } from './planes.js';
+import { alcanzoLimite, avisoDeCobro, leerPlanes, limitesDe, planEfectivo, precioDe } from './planes.js';
 
 const sus = (s: Partial<Suscripcion>): Suscripcion => ({ plan: 'premium', estado: 'activa', proveedor: 'mercadopago', actualizadaEn: '2026-10-01T00:00:00Z', ...s });
 const ahora = new Date('2026-10-14T12:00:00Z');
@@ -38,12 +38,10 @@ describe('límites', () => {
     expect(limitesDe('premium').mensajesPorDia).toBeGreaterThan(limitesDe('gratis').mensajesPorDia);
   });
 
-  it('alcanzoLimite y restantes respetan null como sin límite', () => {
+  it('alcanzoLimite respeta null como sin límite', () => {
     expect(alcanzoLimite(null, 999)).toBe(false);
     expect(alcanzoLimite(3, 3)).toBe(true);
     expect(alcanzoLimite(3, 2)).toBe(false);
-    expect(restantes(null, 5)).toBeNull();
-    expect(restantes(10, 12)).toBe(0);
   });
 
   it('precios en soles desde planes.json', () => {

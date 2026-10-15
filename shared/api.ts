@@ -9,7 +9,6 @@ import type {
   Adjunto,
   Ajuste,
   Aviso,
-  Conversacion,
   EstadoSuscripcion,
   LimitesPlan,
   NombreAgente,
@@ -23,7 +22,6 @@ import type {
   PlanSemanal,
   Prenda,
   PreguntaPerfil,
-  RegistroUso,
   RespuestaSalud,
 } from './types.js';
 
@@ -195,7 +193,7 @@ export type RespAvisos = Aviso[];
 // GET /api/conversaciones → Pick<Conversacion,'id'|'titulo'|'actualizadaEn'>[]
 // GET /api/conversaciones/:id → Conversacion
 // POST /api/chat  body: PeticionChat → text/event-stream de EventoChat (ver types.ts)
-export type { Adjunto, Conversacion, NombreAgente, RegistroUso };
+export type { Adjunto, NombreAgente };
 
 // ---------------------------------------------------------------- administración (solo ADMIN_EMAILS)
 // GET /api/invitados → { email: string; agregadoEn: string; agregadoPor: string }[]
@@ -255,6 +253,3 @@ export interface RespJob {
   detalles: string[];
 }
 
-/** Cabecera usada por el cliente */
-export const CABECERA_AUTH = 'authorization';
-export const CABECERA_JOBS = 'x-jobs-secret';

@@ -3,7 +3,6 @@
  * y expone `chatStream` para leer el text/event-stream de POST /api/chat.
  */
 import type {
-  Adjunto,
   Ajuste,
   Conversacion,
   Deseo,
@@ -189,7 +188,6 @@ export const api = {
   resumenUso: () => get<RespResumenUso>('/api/uso/resumen'),
 };
 
-export type { Adjunto, Perfil, Prenda };
 
 // ------------------------------------------------------------ chat en streaming (SSE sobre POST)
 /**

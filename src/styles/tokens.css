@@ -243,12 +243,6 @@ img {
 .aparece {
   animation: aparecer var(--dur-3) var(--ease) both;
 }
-.aparece-2 {
-  animation: aparecer var(--dur-3) var(--ease) 120ms both;
-}
-.aparece-3 {
-  animation: aparecer var(--dur-3) var(--ease) 240ms both;
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,

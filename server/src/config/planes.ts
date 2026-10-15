@@ -87,11 +87,6 @@ export function alcanzoLimite(limite: number | null, usados: number): boolean {
   return limite !== null && usados >= limite;
 }
 
-/** Cuántos le quedan (null = sin límite). */
-export function restantes(limite: number | null, usados: number): number | null {
-  return limite === null ? null : Math.max(0, limite - usados);
-}
-
 /** Días de anticipación del aviso antes de un cobro: el fin de la prueba y la renovación anual. */
 export const AVISO_COBRO_DIAS = { prueba: 2, anual: 7 } as const;
 

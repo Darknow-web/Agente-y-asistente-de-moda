@@ -102,11 +102,3 @@ export function Lockup({ altura = 32, fondo = 'var(--fondo)', titulo = 'SASTRA',
   );
 }
 
-export function Marca(props: { variante?: 'isotipo' | 'lockup'; altura?: number; fondo?: string }) {
-  const { variante = 'lockup', altura = 32, fondo } = props;
-  return variante === 'isotipo' ? (
-    <Isotipo tamano={altura} fondo={fondo} titulo="SASTRA" />
-  ) : (
-    <Lockup altura={altura} fondo={fondo} />
-  );
-}

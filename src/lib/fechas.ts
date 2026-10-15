@@ -14,12 +14,6 @@ export function aFechaISO(fecha: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Convierte YYYY-MM-DD a Date local (mediodía, para evitar saltos de zona). */
-export function desdeFechaISO(iso: string): Date {
-  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0);
-}
-
 export function hoyISO(): string {
   return aFechaISO(new Date());
 }
